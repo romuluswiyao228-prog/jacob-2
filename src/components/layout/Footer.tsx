@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import type { PublicStoreSettings } from "@/lib/db-types";
 import styles from "./Footer.module.css";
 
