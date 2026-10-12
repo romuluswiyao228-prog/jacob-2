@@ -1,0 +1,208 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--color-surface);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-5);
+  height: var(--header-height);
+}
+
+/* --- Menu button (mobile) --- */
+
+.menuBtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text);
+  padding: var(--space-2);
+}
+
+/* --- Logo --- */
+
+.logo {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-display);
+  color: var(--color-text);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* --- Desktop nav --- */
+
+.nav {
+  display: flex;
+  gap: var(--space-6);
+  flex: 1;
+  margin-left: var(--space-5);
+}
+
+.navLink {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-text);
+  padding: var(--space-2) 0;
+  border-bottom: var(--border-width) solid transparent;
+  transition: border-color var(--transition-base);
+}
+
+.navLink:hover {
+  border-color: var(--color-text);
+}
+
+/* --- Actions --- */
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+}
+
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  color: var(--color-text);
+  padding: var(--space-2);
+  transition: opacity var(--transition-fast);
+}
+
+.iconBtn:hover {
+  opacity: 0.6;
+}
+
+.cartCount {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: var(--weight-bold);
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+  border-radius: var(--radius);
+}
+
+/* --- Search bar --- */
+
+.searchBar {
+  border-top: var(--border-width) solid var(--color-border);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-neutral-50);
+}
+
+.searchForm {
+  display: flex;
+  gap: var(--space-3);
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+.searchInput {
+  flex: 1;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  border: var(--border-width) solid var(--color-neutral-300);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+  min-height: 40px;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--color-text);
+}
+
+.searchSubmit {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  background: var(--color-text);
+  color: var(--color-text-inverse);
+  border: var(--border-width) solid var(--color-text);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-5);
+  transition: background var(--transition-base), color var(--transition-base);
+}
+
+.searchSubmit:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+/* --- Mobile nav --- */
+
+.mobileNav {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.mobileLink {
+  display: block;
+  padding: var(--space-4) 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-text);
+  border-bottom: var(--border-width) solid var(--color-border-subtle);
+  transition: color var(--transition-fast);
+}
+
+.mobileLink:hover {
+  color: var(--color-accent);
+}
+
+/* --- Responsive --- */
+
+@media (max-width: 768px) {
+  .menuBtn {
+    display: flex;
+  }
+
+  .nav {
+    display: none;
+  }
+
+  .logo {
+    font-size: var(--text-base);
+  }
+
+  .inner {
+    gap: var(--space-3);
+    padding: 0 var(--space-4);
+  }
+}
+
+@media (max-width: 480px) {
+  .logo {
+    font-size: var(--text-sm);
+    letter-spacing: 0;
+  }
+
+  .actions {
+    gap: var(--space-2);
+  }
+}

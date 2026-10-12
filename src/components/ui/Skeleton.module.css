@@ -1,0 +1,32 @@
+.skeleton {
+  background: var(--color-neutral-200);
+  border-radius: var(--radius);
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.text {
+  height: 1em;
+  border-radius: var(--radius-sm);
+}
+
+.circle {
+  border-radius: 50%;
+  aspect-ratio: 1;
+}
+
+@keyframes shimmer {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    opacity: 0.6;
+  }
+}

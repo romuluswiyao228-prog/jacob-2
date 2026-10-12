@@ -1,0 +1,191 @@
+/* ============================================================
+   JACOB DE JESUS — Design System Tokens
+   Streetwear: brutal, clean, sober, single accent
+   ============================================================ */
+
+:root {
+  /* --- Colors --- */
+  --color-bg: #0a0a0a;
+  --color-surface: #ffffff;
+  --color-text: #0a0a0a;
+  --color-text-inverse: #ffffff;
+  --color-text-muted: #6b6b6b;
+  --color-border: #0a0a0a;
+  --color-border-subtle: #e5e5e5;
+
+  /* Neutrals ramp */
+  --color-neutral-50: #fafafa;
+  --color-neutral-100: #f5f5f5;
+  --color-neutral-200: #e5e5e5;
+  --color-neutral-300: #d4d4d4;
+  --color-neutral-400: #a3a3a3;
+  --color-neutral-500: #6b6b6b;
+  --color-neutral-600: #525252;
+  --color-neutral-700: #333333;
+  --color-neutral-800: #1a1a1a;
+  --color-neutral-900: #0a0a0a;
+
+  /* Accent — single red */
+  --color-accent: #e10600;
+  --color-accent-hover: #c50500;
+  --color-accent-text: #ffffff;
+
+  /* Semantic */
+  --color-success: #1a7d34;
+  --color-warning: #b8860b;
+  --color-error: #e10600;
+  --color-error-bg: #fef2f2;
+
+  /* --- Typography --- */
+  --font-display: "Anton", "Arial Narrow", sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-mono: "Space Mono", "Courier New", monospace;
+
+  /* Font sizes */
+  --text-xs: 0.75rem;     /* 12px */
+  --text-sm: 0.875rem;    /* 14px */
+  --text-base: 1rem;      /* 16px */
+  --text-lg: 1.125rem;    /* 18px */
+  --text-xl: 1.25rem;     /* 20px */
+  --text-2xl: 1.5rem;     /* 24px */
+  --text-3xl: 2rem;       /* 32px */
+  --text-4xl: 2.5rem;     /* 40px */
+  --text-5xl: 3.5rem;     /* 56px */
+
+  /* Line heights */
+  --leading-body: 1.5;
+  --leading-heading: 1.2;
+  --leading-tight: 1.1;
+
+  /* Font weights */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-bold: 700;
+
+  /* Letter spacing for display headings */
+  --tracking-display: 0.02em;
+  --tracking-wide: 0.08em;
+  --tracking-wider: 0.12em;
+
+  /* --- Spacing (8px base) --- */
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 8px;
+  --space-4: 12px;
+  --space-5: 16px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 64px;
+  --space-11: 80px;
+
+  /* --- Borders --- */
+  --radius: 0px;
+  --radius-sm: 2px;
+  --border-width: 1px;
+  --border-width-thick: 2px;
+
+  /* --- Transitions --- */
+  --transition-fast: 100ms ease;
+  --transition-base: 150ms ease;
+
+  /* --- Z-index --- */
+  --z-drawer: 1000;
+  --z-toast: 1100;
+
+  /* --- Layout --- */
+  --max-width: 1440px;
+  --header-height: 64px;
+}
+
+/* ============================================================
+   Reset
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-body);
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+/* ============================================================
+   Utility classes
+   ============================================================ */
+
+.ds-heading {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-display);
+  line-height: var(--leading-heading);
+}
+
+.ds-mono {
+  font-family: var(--font-mono);
+}
+
+.ds-uppercase {
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+/* ============================================================
+   prefers-reduced-motion
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
