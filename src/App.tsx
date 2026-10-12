@@ -17,6 +17,9 @@ const MfaSetupPage = lazy(() => import("@/routes/admin/MfaSetupPage"));
 const AdminDashboardPage = lazy(() => import("@/routes/admin/AdminDashboardPage"));
 
 const HomePage = lazy(() => import("@/routes/HomePage"));
+const ShopPage = lazy(() => import("@/routes/ShopPage"));
+const ProductDetailPage = lazy(() => import("@/routes/ProductDetailPage"));
+const FavoritesPage = lazy(() => import("@/routes/FavoritesPage"));
 const NotFoundPage = lazy(() => import("@/routes/NotFoundPage"));
 const NetworkErrorPage = lazy(() => import("@/routes/NetworkErrorPage"));
 
@@ -53,6 +56,13 @@ export default function App() {
                 <Routes>
                   {/* Home */}
                   <Route path="/" element={<HomePage />} />
+
+                  {/* Catalogue & Produit */}
+                  <Route path="/boutique" element={<ShopPage />} />
+                  <Route path="/categorie/:slug" element={<ShopPage />} />
+                  <Route path="/collection/:slug" element={<ShopPage />} />
+                  <Route path="/produit/:slug" element={<ProductDetailPage />} />
+                  <Route path="/favoris" element={<FavoritesPage />} />
 
                   {/* Auth routes */}
                   <Route path="/connexion" element={<LoginPage />} />

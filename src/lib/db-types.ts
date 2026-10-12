@@ -81,8 +81,27 @@ export interface PublicStoreSettings {
   currency: string;
   social_links: Record<string, string>;
   about_text: string | null;
+  legal_mentions: string | null;
+  cgv: string | null;
+  privacy_policy: string | null;
   announcement_text: string | null;
   whatsapp_number: string | null;
+}
+
+export interface ProductVariant {
+  id: string;
+  product_id: string;
+  size: string | null;
+  color: string | null;
+  sku: string;
+  stock: number;
+  price: number | null;
+  currency: string;
+}
+
+export interface Favorite {
+  user_id: string;
+  product_id: string;
 }
 
 export interface BestSeller {
@@ -94,3 +113,4 @@ export interface BestSeller {
   currency: string;
   is_featured: boolean;
 }
+

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useCategories } from "@/lib/hooks";
 import { Drawer } from "@/components/ui";
-import { Menu, Search, Heart, ShoppingBag, User } from "lucide-react";
+import { Menu, Search, Heart, ShoppingBag, User, ChevronDown } from "lucide-react";
 import styles from "./Header.module.css";
 
 interface HeaderProps {
@@ -15,8 +15,12 @@ export function Header({ storeName }: HeaderProps) {
   const { data: categories } = useCategories();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const navigate = useNavigate();
+
+  const mainCategories = (categories ?? []).slice(0, 5);
+  const extraCategories = (categories ?? []).slice(5);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +51,7 @@ export function Header({ storeName }: HeaderProps) {
 
           {/* Desktop nav */}
           <nav className={styles.nav} aria-label="Catégories">
-            {(categories ?? []).slice(0, 6).map((cat) => (
+            {mainCategories.map((cat) => (
               <Link
                 key={cat.id}
                 to={`/categorie/${cat.slug}`}
@@ -56,6 +60,35 @@ export function Header({ storeName }: HeaderProps) {
                 {cat.name}
               </Link>
             ))}
+
+            {extraCategories.length > 0 && (
+              <div className={styles.moreWrap}>
+                <button
+                  type="button"
+                  className={styles.moreBtn}
+                  onClick={() => setMoreOpen((o) => !o)}
+                  aria-expanded={moreOpen}
+                  aria-haspopup="true"
+                >
+                  <span>Plus</span>
+                  <ChevronDown size={14} />
+                </button>
+                {moreOpen && (
+                  <div className={styles.moreDropdown}>
+                    {extraCategories.map((cat) => (
+                      <Link
+                        key={cat.id}
+                        to={`/categorie/${cat.slug}`}
+                        className={styles.moreLink}
+                        onClick={() => setMoreOpen(false)}
+                      >
+                        {cat.name}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </nav>
 
           {/* Actions */}

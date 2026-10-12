@@ -21,9 +21,11 @@ function productToCardData(
   const hasDiscount = product.compare_at_price != null && product.compare_at_price > product.price;
   return {
     id: product.id,
+    slug: product.slug,
     name: product.name,
     reference: product.slug.toUpperCase(),
     price: product.price,
+    currency: product.currency,
     originalPrice: hasDiscount ? product.compare_at_price : null,
     image: product.primary_image?.url ?? "",
     imageAlt: product.primary_image?.alt_text ?? product.name,
@@ -93,9 +95,11 @@ export default function HomePage() {
   const bestSellerCards: ProductCardData[] = hasBestSellers
     ? (bestSellers ?? []).map((bs) => ({
         id: bs.product_id,
+        slug: bs.slug,
         name: bs.name,
         reference: bs.slug.toUpperCase(),
         price: bs.price,
+        currency: bs.currency,
         image: "",
         imageAlt: bs.name,
         sizes: ["S", "M", "L", "XL"],
