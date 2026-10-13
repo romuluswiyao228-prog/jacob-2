@@ -1,5 +1,5 @@
 ﻿import { Link } from "react-router-dom";
-import { X, Trash2, Plus, Minus, ShoppingBag, AlertTriangle } from "lucide-react";
+import { Trash2, Plus, Minus, ShoppingBag, AlertTriangle } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { Drawer, Button, Skeleton, EmptyState, ErrorState } from "@/components/ui";
 import styles from "./CartDrawer.module.css";

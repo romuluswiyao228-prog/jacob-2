@@ -1,5 +1,5 @@
 /**
- * CartContext — gestion du panier
+ * CartContext ï¿½ gestion du panier
  *
  * Invite   -> localStorage (cle: "jacob_cart_guest")
  * Connecte -> tables carts + cart_items (Supabase, RLS)
@@ -177,7 +177,7 @@ async function loadRemoteCartItems(cartId: string): Promise<CartLineItem[]> {
     } | null;
   };
 
-  return (data as RawRow[]).flatMap((r) => {
+  return (data as unknown as RawRow[]).flatMap((r) => {
     if (!r.product_variants || !r.product_variants.products) return [];
     const pv = r.product_variants;
     const prod = pv.products!;
@@ -215,7 +215,7 @@ async function revalidateItems(items: CartLineItem[]): Promise<CartLineItem[]> {
   type LiveRow = { id: string; stock: number; price: number | null; currency: string; products: { is_archived: boolean } | null };
 
   const liveMap = new Map<string, LiveRow>();
-  (data as LiveRow[] ?? []).forEach((v) => liveMap.set(v.id, v));
+  ((data ?? []) as unknown as LiveRow[]).forEach((v) => liveMap.set(v.id, v));
 
   return items.map((item) => {
     const live = liveMap.get(item.variant_id);
