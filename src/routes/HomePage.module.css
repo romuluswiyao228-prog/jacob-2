@@ -3,16 +3,16 @@
   color: var(--color-text);
 }
 
-/* --- Hero --- */
+/* --- Bannière : le nom de la marque, en très grand --- */
 
 .hero {
   position: relative;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 500px;
+  min-height: clamp(440px, 84svh, 800px);
   overflow: hidden;
-  border-bottom: var(--border-width) solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-inverse);
+  border-bottom: var(--border-width-thick) solid var(--color-bg);
 }
 
 .heroImage {
@@ -23,194 +23,250 @@
   object-fit: cover;
 }
 
-.heroFallback {
+/* Calque uni : la photo reste lisible sans dégradé */
+.heroShade {
   position: absolute;
   inset: 0;
-  background: var(--color-text);
+  background: rgba(10, 10, 10, 0.45);
 }
 
-.heroOverlay {
+.heroInner {
   position: relative;
   z-index: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: var(--space-5);
-  text-align: center;
-  padding: var(--space-9) var(--space-6);
+  justify-content: flex-end;
+  gap: var(--space-7);
+  width: 100%;
+  padding: var(--space-8) 4vw var(--space-7);
 }
 
-.heroTitle {
+.wordmark {
   font-family: var(--font-display);
-  font-size: var(--text-5xl);
+  font-weight: var(--weight-regular);
   text-transform: uppercase;
-  letter-spacing: var(--tracking-display);
-  color: var(--color-text-inverse);
-  line-height: var(--leading-tight);
-  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.01em;
+  line-height: 0.92;
+  font-size: min(var(--wm-size, 24vw), 24rem);
 }
 
-.heroFallback ~ .heroOverlay .heroTitle {
-  color: var(--color-text-inverse);
-  text-shadow: none;
+.wordmarkLine {
+  display: block;
+  overflow: hidden;
 }
 
-.heroText {
-  font-size: var(--text-base);
-  color: var(--color-text-inverse);
-  max-width: 500px;
-  line-height: var(--leading-body);
-  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
+/* Le seul mouvement de la page : le nom se lève au chargement */
+.wordmarkText {
+  display: inline-block;
+  animation: rise 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-/* --- Sections container --- */
+@keyframes rise {
+  from {
+    transform: translateY(105%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
 
-.sections {
-  max-width: var(--max-width);
-  margin: 0 auto;
-  padding: 0 var(--space-6);
+.heroFoot {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-6);
+  flex-wrap: wrap;
 }
 
-/* --- Category grid --- */
+.heroIntro {
+  max-width: 38ch;
+  font-size: var(--text-lg);
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5) var(--space-8);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: var(--border-width-thick) solid var(--color-surface);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  transition: background var(--transition-base), color var(--transition-base);
+}
+
+.cta:hover,
+.cta:focus-visible {
+  background: transparent;
+  color: var(--color-text-inverse);
+}
+
+.cta:focus-visible {
+  outline: 2px solid var(--color-text-inverse);
+  outline-offset: 4px;
+}
+
+/* --- Catégories : grille de tuiles aux bordures partagées --- */
 
 .categoryGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: var(--space-3);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 0 1px 1px 0;
 }
 
 .categoryCard {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-7) var(--space-5);
+  align-items: flex-end;
+  min-height: clamp(110px, 14vw, 190px);
+  padding: var(--space-6);
+  margin: 0 -1px -1px 0;
   border: var(--border-width) solid var(--color-border);
   background: var(--color-surface);
+  color: var(--color-text);
   transition: background var(--transition-base), color var(--transition-base);
 }
 
-.categoryCard:hover {
-  background: var(--color-text);
+.categoryCard:hover,
+.categoryCard:focus-visible {
+  background: var(--color-bg);
   color: var(--color-text-inverse);
 }
 
 .categoryName {
-  font-family: var(--font-body);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-bold);
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3.2vw, 2.75rem);
   text-transform: uppercase;
-  letter-spacing: var(--tracking-wide);
-  text-align: center;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  overflow-wrap: anywhere;
 }
 
-/* --- Product grid --- */
+/* --- Produits --- */
 
 .productGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-5);
 }
 
-/* --- Collection grid --- */
+/* --- Collections --- */
 
 .collectionGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-5);
 }
 
 .collectionCard {
-  display: flex;
-  flex-direction: column;
-  border: var(--border-width) solid var(--color-border);
+  position: relative;
+  display: block;
   overflow: hidden;
-  transition: border-color var(--transition-base);
+  border: var(--border-width) solid var(--color-border);
+  background: var(--color-neutral-200);
 }
 
-.collectionCard:hover {
-  border-color: var(--color-text);
-}
-
-.collectionImage {
+.collectionImage,
+.collectionPlaceholder {
   width: 100%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 4 / 5;
   object-fit: cover;
 }
 
 .collectionPlaceholder {
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  background: var(--color-neutral-100);
+  background: var(--color-neutral-200);
 }
 
 .collectionName {
-  padding: var(--space-4) var(--space-5);
-  font-family: var(--font-body);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-bold);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-wide);
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  max-width: 100%;
+  padding: var(--space-4) var(--space-6);
+  background: var(--color-surface);
   border-top: var(--border-width) solid var(--color-border);
-}
-
-/* --- About section --- */
-
-.aboutSection {
-  padding: var(--space-9) 0;
-  border-top: var(--border-width) solid var(--color-border);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-  max-width: 700px;
-}
-
-.aboutTitle {
+  border-right: var(--border-width) solid var(--color-border);
   font-family: var(--font-display);
-  font-size: var(--text-2xl);
+  font-size: clamp(1.25rem, 2vw, 1.75rem);
   text-transform: uppercase;
-  letter-spacing: var(--tracking-display);
+  letter-spacing: 0.01em;
+  line-height: 1.1;
 }
 
-.aboutText {
-  font-size: var(--text-base);
-  line-height: var(--leading-body);
-  color: var(--color-neutral-700);
+/* --- La marque --- */
+
+.brand {
+  background: var(--color-bg);
+  color: var(--color-text-inverse);
 }
 
-/* --- Misc --- */
+.brandInner {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: clamp(56px, 9vw, 128px) 4vw;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: var(--space-9);
+}
 
-.settingsLoading {
-  padding: var(--space-5) 0;
+.brandTitle {
+  font-family: var(--font-display);
+  font-weight: var(--weight-regular);
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+.brandText {
+  max-width: 52ch;
+  font-size: clamp(1.25rem, 2.2vw, 1.875rem);
+  font-weight: var(--weight-medium);
+  line-height: 1.35;
+  white-space: pre-line;
 }
 
 /* --- Responsive --- */
 
+@media (max-width: 1100px) {
+  .productGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .collectionGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 768px) {
-  .hero {
-    min-height: 350px;
+  .heroInner {
+    padding-bottom: var(--space-6);
+    gap: var(--space-6);
   }
 
-  .heroTitle {
-    font-size: var(--text-3xl);
+  .heroFoot {
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  .heroText {
-    font-size: var(--text-sm);
-  }
-
-  .sections {
-    padding: 0 var(--space-4);
+  .cta {
+    width: 100%;
   }
 
   .categoryGrid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .categoryCard {
+    padding: var(--space-5);
   }
 
   .productGrid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-3);
   }
 
@@ -218,17 +274,8 @@
     grid-template-columns: 1fr;
   }
 
-  .aboutTitle {
-    font-size: var(--text-lg);
-  }
-}
-
-@media (max-width: 480px) {
-  .hero {
-    min-height: 280px;
-  }
-
-  .heroTitle {
-    font-size: var(--text-2xl);
+  .brandInner {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
   }
 }

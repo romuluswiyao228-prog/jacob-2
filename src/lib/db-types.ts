@@ -66,6 +66,7 @@ export interface StoreSettings {
   about_text: string | null;
   announcement_text: string | null;
   whatsapp_number: string | null;
+  banner_url: string | null;
 }
 
 export interface PublicStoreSettings {
@@ -86,6 +87,7 @@ export interface PublicStoreSettings {
   privacy_policy: string | null;
   announcement_text: string | null;
   whatsapp_number: string | null;
+  banner_url: string | null;
 }
 
 export interface ProductVariant {

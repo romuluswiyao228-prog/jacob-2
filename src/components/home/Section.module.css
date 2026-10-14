@@ -1,20 +1,49 @@
 .section {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.paper {
+  background: var(--color-neutral-100);
+}
+
+.inner {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: clamp(40px, 6vw, 88px) 4vw;
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
-  padding: var(--space-6) 0;
+  gap: var(--space-7);
 }
 
 .header {
-  border-bottom: var(--border-width) solid var(--color-border);
-  padding-bottom: var(--space-3);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-5);
 }
 
 .title {
   font-family: var(--font-display);
-  font-size: var(--text-2xl);
+  font-weight: var(--weight-regular);
+  font-size: clamp(2rem, 5vw, 3.5rem);
   text-transform: uppercase;
-  letter-spacing: var(--tracking-display);
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+.more {
+  flex-shrink: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  text-decoration: underline;
+  text-underline-offset: 5px;
+  text-decoration-thickness: 1px;
+}
+
+.more:hover,
+.more:focus-visible {
+  text-decoration-thickness: 3px;
 }
 
 .body {
@@ -25,17 +54,13 @@
 
 .skeletonRow {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-5);
 }
 
 @media (max-width: 768px) {
-  .title {
-    font-size: var(--text-lg);
-  }
-
   .skeletonRow {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-3);
   }
 }

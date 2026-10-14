@@ -1,4 +1,7 @@
+import type { CSSProperties } from "react";
+import { Link } from "react-router-dom";
 import type { PublicStoreSettings } from "@/lib/db-types";
+import { wordmarkSize } from "@/lib/wordmark";
 import styles from "./Footer.module.css";
 
 interface FooterProps {
@@ -6,78 +9,65 @@ interface FooterProps {
 }
 
 export function Footer({ settings }: FooterProps) {
-  const hasEmail = settings?.email && settings.email.trim().length > 0;
-  const hasPhone = settings?.phone && settings.phone.trim().length > 0;
-  const hasAddress = settings?.address && settings.address.trim().length > 0;
-  const hasCity = settings?.city && settings.city.trim().length > 0;
-  const hasSocial =
-    settings?.social_links && Object.keys(settings.social_links).length > 0;
+  const storeName = settings?.store_name?.trim() || "JACOB DE JESUS";
+  const description = settings?.description?.trim() ?? "";
+  const email = settings?.email?.trim() ?? "";
+  const phone = settings?.phone?.trim() ?? "";
+  const place = [settings?.address, settings?.city, settings?.country]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(", ");
+  const hasContact = Boolean(email || phone || settings?.address || settings?.city);
 
-  const socialEntries = hasSocial
-    ? Object.entries(settings!.social_links).filter(
-        ([, url]) => url && url.trim().length > 0
-      )
-    : [];
+  const socialEntries = Object.entries(settings?.social_links ?? {}).filter(
+    ([, url]) => url && url.trim().length > 0
+  );
 
-  const hasContact = hasEmail || hasPhone || hasAddress || hasCity;
-
-  if (!hasContact && !hasSocial) {
-    return (
-      <footer className={styles.footer}>
-        <div className={styles.inner}>
-          <p className={styles.storeName}>
-            {settings?.store_name ?? "JACOB DE JESUS"}
-          </p>
-        </div>
-      </footer>
-    );
-  }
+  const wordmarkStyle = {
+    "--wm-size": wordmarkSize([storeName], 94, 40),
+  } as CSSProperties;
 
   return (
     <footer className={styles.footer}>
       <div className={styles.inner}>
         <div className={styles.grid}>
-          {/* Store identity */}
-          <div className={styles.col}>
-            <p className={styles.storeName}>
-              {settings?.store_name ?? "JACOB DE JESUS"}
-            </p>
-            {settings?.description && (
-              <p className={styles.description}>{settings.description}</p>
-            )}
+          <div className={styles.colWide}>
+            {description && <p className={styles.description}>{description}</p>}
           </div>
 
-          {/* Contact */}
+          <nav className={styles.col} aria-label="Boutique">
+            <h3 className={styles.heading}>Boutique</h3>
+            <Link to="/boutique" className={styles.link}>
+              Toute la collection
+            </Link>
+            <Link to="/favoris" className={styles.link}>
+              Favoris
+            </Link>
+            <Link to="/panier" className={styles.link}>
+              Panier
+            </Link>
+            <Link to="/compte" className={styles.link}>
+              Mon compte
+            </Link>
+          </nav>
+
           {hasContact && (
             <div className={styles.col}>
               <h3 className={styles.heading}>Contact</h3>
-              {hasEmail && (
-                <a
-                  href={`mailto:${settings!.email}`}
-                  className={styles.link}
-                >
-                  {settings!.email}
+              {email && (
+                <a href={`mailto:${email}`} className={styles.link}>
+                  {email}
                 </a>
               )}
-              {hasPhone && (
-                <a
-                  href={`tel:${settings!.phone}`}
-                  className={styles.link}
-                >
-                  {settings!.phone}
+              {phone && (
+                <a href={`tel:${phone}`} className={styles.link}>
+                  {phone}
                 </a>
               )}
-              {(hasAddress || hasCity) && (
-                <p className={styles.text}>
-                  {[settings?.address, settings?.city, settings?.country]
-                    .filter(Boolean)
-                    .join(", ")}
-                </p>
-              )}
+              {place && <p className={styles.text}>{place}</p>}
             </div>
           )}
 
-          {/* Social */}
           {socialEntries.length > 0 && (
             <div className={styles.col}>
               <h3 className={styles.heading}>Suivez-nous</h3>
@@ -95,6 +85,13 @@ export function Footer({ settings }: FooterProps) {
             </div>
           )}
         </div>
+
+        <p className={styles.wordmark} style={wordmarkStyle} aria-hidden="true">
+          {storeName}
+        </p>
+        <p className={styles.legal}>
+          © {new Date().getFullYear()} {storeName}
+        </p>
       </div>
     </footer>
   );
