@@ -1,6 +1,7 @@
 import { lazy, Suspense, type ComponentType } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/lib/auth-context";
+import { CartProvider } from "@/lib/cart-context";
 import { RequireAuth } from "@/components/RequireAuth";
 import { RequireAdmin } from "@/components/RequireAdmin";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -20,6 +21,9 @@ const HomePage = lazy(() => import("@/routes/HomePage"));
 const ShopPage = lazy(() => import("@/routes/ShopPage"));
 const ProductDetailPage = lazy(() => import("@/routes/ProductDetailPage"));
 const FavoritesPage = lazy(() => import("@/routes/FavoritesPage"));
+const CartPage = lazy(() => import("@/routes/CartPage"));
+const CheckoutPage = lazy(() => import("@/routes/CheckoutPage"));
+const OrderConfirmationPage = lazy(() => import("@/routes/OrderConfirmationPage"));
 const NotFoundPage = lazy(() => import("@/routes/NotFoundPage"));
 const NetworkErrorPage = lazy(() => import("@/routes/NetworkErrorPage"));
 
@@ -48,21 +52,27 @@ if (import.meta.env.DEV) {
 export default function App() {
   return (
     <AuthProvider>
-      <ToastProvider>
-        <BrowserRouter>
-          <ErrorBoundary>
-            <Layout>
-              <Suspense fallback={<PageFallback />}>
-                <Routes>
-                  {/* Home */}
-                  <Route path="/" element={<HomePage />} />
+      <CartProvider>
+        <ToastProvider>
+          <BrowserRouter>
+            <ErrorBoundary>
+              <Layout>
+                <Suspense fallback={<PageFallback />}>
+                  <Routes>
+                    {/* Home */}
+                    <Route path="/" element={<HomePage />} />
 
-                  {/* Catalogue & Produit */}
-                  <Route path="/boutique" element={<ShopPage />} />
-                  <Route path="/categorie/:slug" element={<ShopPage />} />
-                  <Route path="/collection/:slug" element={<ShopPage />} />
-                  <Route path="/produit/:slug" element={<ProductDetailPage />} />
-                  <Route path="/favoris" element={<FavoritesPage />} />
+                    {/* Catalogue & Produit */}
+                    <Route path="/boutique" element={<ShopPage />} />
+                    <Route path="/categorie/:slug" element={<ShopPage />} />
+                    <Route path="/collection/:slug" element={<ShopPage />} />
+                    <Route path="/produit/:slug" element={<ProductDetailPage />} />
+                    <Route path="/favoris" element={<FavoritesPage />} />
+
+                    {/* Panier & Commande */}
+                    <Route path="/panier" element={<CartPage />} />
+                    <Route path="/commande" element={<CheckoutPage />} />
+                    <Route path="/commande/confirmation" element={<OrderConfirmationPage />} />
 
                   {/* Auth routes */}
                   <Route path="/connexion" element={<LoginPage />} />
@@ -109,6 +119,7 @@ export default function App() {
           </ErrorBoundary>
         </BrowserRouter>
       </ToastProvider>
-    </AuthProvider>
+    </CartProvider>
+  </AuthProvider>
   );
 }

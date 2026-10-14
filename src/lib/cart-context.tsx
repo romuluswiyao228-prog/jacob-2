@@ -67,6 +67,7 @@ export interface CartContextValue {
   updateQuantity: (lineItemId: string, quantity: number) => Promise<void>;
   clearAlerts: () => void;
   retry: () => Promise<void>;
+  clearCart: () => Promise<void>;
 }
 
 // --- LocalStorage helpers ----------------------------------------------------
@@ -429,6 +430,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const subtotal = items.reduce((acc, i) => acc + i.unit_price * i.quantity, 0);
   const retry = useCallback(() => loadCart(true), [loadCart]);
 
+  const clearCart = useCallback(async () => {
+    try {
+      if (user) {
+        const cartId = cartIdRef.current ?? (await ensureCart(user.id));
+        if (cartId) {
+          await supabase.from("cart_items").delete().eq("cart_id", cartId);
+        }
+      }
+      clearLocalCart();
+      setItems([]);
+    } catch (err) {
+      console.error("Erreur vidage panier", err);
+    }
+  }, [user]);
+
   return (
     <CartContext.Provider
       value={{
@@ -446,6 +462,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         updateQuantity,
         clearAlerts,
         retry,
+        clearCart,
       }}
     >
       {children}
