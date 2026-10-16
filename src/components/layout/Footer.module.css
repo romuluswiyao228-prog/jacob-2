@@ -1,6 +1,7 @@
 .footer {
-  background: var(--color-bg);
-  color: var(--color-text-inverse);
+  background: var(--color-brand);
+  color: var(--color-bg);
+  border-top: var(--border-width-thick) solid var(--color-bg);
   padding: clamp(48px, 7vw, 96px) 0 var(--space-6);
 }
 
@@ -29,14 +30,14 @@
   max-width: 34ch;
   font-size: var(--text-lg);
   line-height: 1.4;
-  color: var(--color-neutral-300);
+  color: var(--color-bg);
 }
 
 .heading {
   margin-bottom: var(--space-2);
   font-size: var(--text-base);
   font-weight: var(--weight-bold);
-  color: var(--color-text-inverse);
+  color: var(--color-bg);
 }
 
 .link {
@@ -44,21 +45,29 @@
   max-width: 100%;
   overflow-wrap: anywhere;
   font-size: var(--text-base);
-  color: var(--color-neutral-400);
-  transition: color var(--transition-fast);
+  color: var(--color-neutral-800);
+  text-decoration: underline;
+  text-decoration-color: rgba(10, 10, 10, 0.35);
+  text-underline-offset: 4px;
+  transition: text-decoration-color var(--transition-fast);
 }
 
 .link:hover,
 .link:focus-visible {
-  color: var(--color-text-inverse);
-  text-decoration: underline;
-  text-underline-offset: 4px;
+  color: var(--color-bg);
+  text-decoration-color: var(--color-bg);
+  text-decoration-thickness: 2px;
+}
+
+.link:focus-visible {
+  outline: 3px solid var(--color-bg);
+  outline-offset: 3px;
 }
 
 .text {
   font-size: var(--text-base);
   line-height: var(--leading-body);
-  color: var(--color-neutral-400);
+  color: var(--color-neutral-800);
 }
 
 /* Le nom de la marque, repris en grand en bas de page */
@@ -70,14 +79,14 @@
   line-height: 0.92;
   white-space: nowrap;
   font-size: min(var(--wm-size, 14vw), 22rem);
-  color: var(--color-text-inverse);
+  color: var(--color-bg);
   user-select: none;
 }
 
 .legal {
   margin-top: var(--space-6);
   font-size: var(--text-sm);
-  color: var(--color-neutral-400);
+  color: var(--color-neutral-800);
 }
 
 @media (max-width: 1000px) {

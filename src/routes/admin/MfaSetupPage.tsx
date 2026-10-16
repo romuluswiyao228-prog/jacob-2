@@ -2,6 +2,15 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
+import {
+  AuthShell,
+  AuthForm,
+  AuthField,
+  AuthAlert,
+  AuthSubmit,
+  AuthText,
+  AuthGhostButton,
+} from "@/components/auth";
 
 export default function MfaSetupPage() {
   const { user, isAdmin, signOut } = useAuth();
@@ -13,6 +22,7 @@ export default function MfaSetupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!user || !isAdmin) {
@@ -28,8 +38,13 @@ export default function MfaSetupPage() {
         issuer: "JACOB DE JESUS",
       });
 
-      if (enrollError || cancelled) return;
-      if (!data) return;
+      if (cancelled) return;
+      if (enrollError || !data) {
+        setError(
+          "Impossible de préparer la double authentification. Rechargez la page."
+        );
+        return;
+      }
 
       setFactorId(data.id);
       setQrUrl(data.totp.qr_code);
@@ -83,95 +98,124 @@ export default function MfaSetupPage() {
     }, 2000);
   };
 
+  const copySecret = async () => {
+    if (!secret) return;
+    try {
+      await navigator.clipboard.writeText(secret);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Copie impossible : la clé reste affichée pour être recopiée à la main.
+    }
+  };
+
   if (success) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-neutral-900 px-4">
-        <div className="w-full max-w-md space-y-6 text-center">
-          <h1 className="text-2xl font-bold text-green-400">MFA activée</h1>
-          <p className="text-sm text-neutral-400">
-            La double authentification est maintenant active. Redirection…
-          </p>
-          <p className="text-xs text-neutral-500">
-            Conservez votre clé manuelle dans un gestionnaire de mots de passe
-            en lieu sûr — elle sera nécessaire si vous perdez votre téléphone.
-          </p>
-        </div>
-      </div>
+      <AuthShell variant="admin" title="MFA activée" pitch="Espace propriétaire.">
+        <AuthAlert tone="success">
+          La double authentification est maintenant active. Redirection…
+        </AuthAlert>
+        <AuthText>
+          Conservez votre clé manuelle dans un gestionnaire de mots de passe, en
+          lieu sûr : elle sera nécessaire si vous perdez votre téléphone.
+        </AuthText>
+      </AuthShell>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-900 px-4 py-12">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white">Activer la MFA</h1>
-          <p className="mt-2 text-sm text-neutral-400">
-            Scannez ce QR code avec votre application d'authentification
-            (Google Authenticator, Authy, etc.), puis saisissez le code généré.
-          </p>
-        </div>
+    <AuthShell
+      variant="admin"
+      title="Activer la MFA"
+      subtitle="Scannez ce QR code avec votre application d'authentification (Google Authenticator, Authy…), puis saisissez le code généré."
+      pitch="Espace propriétaire."
+      footer={
+        <p>
+          <AuthGhostButton
+            onClick={() => {
+              signOut();
+              navigate("/admin/connexion", { replace: true });
+            }}
+          >
+            Annuler et se déconnecter
+          </AuthGhostButton>
+        </p>
+      }
+    >
+      {error && <AuthAlert>{error}</AuthAlert>}
 
-        {error && (
-          <div className="rounded-lg bg-red-950 p-3 text-sm text-red-300">
-            {error}
-          </div>
-        )}
-
-        {qrUrl && (
-          <div className="flex flex-col items-center space-y-4">
-            <div className="rounded-lg bg-white p-4">
-              <img src={qrUrl} alt="QR code MFA" className="h-48 w-48" />
-            </div>
-            {secret && (
-              <div className="w-full rounded-lg bg-neutral-800 p-3">
-                <p className="text-xs text-neutral-400">
-                  Clé manuelle (si le QR code ne fonctionne pas) :
-                </p>
-                <p className="mt-1 break-all font-mono text-sm text-neutral-200">
-                  {secret}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-
-        <form onSubmit={handleVerify} className="space-y-6">
-          <div>
-            <label htmlFor="verify-code" className="block text-sm font-medium text-neutral-300">
-              Code de vérification
-            </label>
-            <input
-              id="verify-code"
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]{6}"
-              maxLength={6}
-              value={verifyCode}
-              onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ""))}
-              required
-              className="mt-1 block w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-center text-2xl tracking-widest text-white focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-500"
+      {qrUrl && (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "16px",
+          }}
+        >
+          <div
+            style={{
+              alignSelf: "flex-start",
+              padding: "16px",
+              background: "#fff",
+              border: "2px solid #0a0a0a",
+            }}
+          >
+            <img
+              src={qrUrl}
+              alt="QR code à scanner avec l'application d'authentification"
+              width={192}
+              height={192}
             />
           </div>
+          {secret && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px",
+                padding: "12px 16px",
+                background: "#f5f5f5",
+                border: "1px solid #0a0a0a",
+              }}
+            >
+              <span style={{ fontSize: "0.875rem" }}>
+                Clé manuelle, si le QR code ne fonctionne pas :
+              </span>
+              <code
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.9375rem",
+                  overflowWrap: "anywhere",
+                }}
+              >
+                {secret}
+              </code>
+              <AuthGhostButton onClick={copySecret}>
+                {copied ? "Copiée" : "Copier la clé"}
+              </AuthGhostButton>
+            </div>
+          )}
+        </div>
+      )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-neutral-900 transition hover:bg-neutral-200 disabled:opacity-50"
-          >
-            {loading ? "Activation…" : "Activer la MFA"}
-          </button>
-        </form>
-
-        <button
-          onClick={() => {
-            signOut();
-            navigate("/admin/connexion", { replace: true });
-          }}
-          className="w-full text-center text-sm text-neutral-500 underline"
-        >
-          Annuler et se déconnecter
-        </button>
-      </div>
-    </div>
+      <AuthForm onSubmit={handleVerify}>
+        <AuthField
+          id="verify-code"
+          variant="code"
+          label="Code de vérification"
+          type="text"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          pattern="[0-9]{6}"
+          maxLength={6}
+          value={verifyCode}
+          onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ""))}
+          required
+        />
+        <AuthSubmit loading={loading} loadingLabel="Activation…">
+          Activer la MFA
+        </AuthSubmit>
+      </AuthForm>
+    </AuthShell>
   );
 }

@@ -30,6 +30,12 @@
   --color-accent-hover: #c50500;
   --color-accent-text: #ffffff;
 
+  /* Couleur de marque : jaune, pour les grandes surfaces (pied de page,
+     panneaux de connexion, bouton principal de la banniere).
+     Texte noir dessus uniquement. Le rouge reste reserve aux promos. */
+  --color-brand: #ffd400;
+  --color-brand-hover: #ffe14d;
+
   /* Semantic */
   --color-success: #1a7d34;
   --color-warning: #b8860b;

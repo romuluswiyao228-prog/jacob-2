@@ -5,6 +5,14 @@ import { z } from "zod";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import type { Profile } from "@/lib/types";
+import {
+  AuthShell,
+  AuthForm,
+  AuthField,
+  AuthAlert,
+  AuthSubmit,
+  AuthText,
+} from "@/components/auth";
 
 const schema = z.object({
   full_name: z.string().min(2, "Veuillez saisir votre nom complet."),
@@ -64,77 +72,37 @@ export default function ProfilePage() {
 
   if (loadingProfile) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-neutral-50">
-        <p className="text-neutral-500">Chargement…</p>
-      </div>
+      <AuthShell variant="page" title="Mon profil">
+        <AuthText>Chargement…</AuthText>
+      </AuthShell>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-12">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-neutral-900">Mon profil</h1>
-          <p className="mt-2 text-sm text-neutral-600">
-            {profile?.email}
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {serverError && (
-            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
-              {serverError}
-            </div>
-          )}
-          {successMessage && (
-            <div className="rounded-lg bg-green-50 p-3 text-sm text-green-700">
-              {successMessage}
-            </div>
-          )}
-
-          <div>
-            <label htmlFor="full_name" className="block text-sm font-medium text-neutral-700">
-              Nom complet
-            </label>
-            <input
-              id="full_name"
-              type="text"
-              {...register("full_name")}
-              className="mt-1 block w-full rounded-lg border border-neutral-300 px-3 py-2 text-neutral-900 focus:border-neutral-900 focus:outline-none focus:ring-1 focus:ring-neutral-900"
-            />
-            {errors.full_name && (
-              <p className="mt-1 text-sm text-red-600">{errors.full_name.message}</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-neutral-700">
-              Téléphone
-            </label>
-            <input
-              id="phone"
-              type="tel"
-              {...register("phone")}
-              className="mt-1 block w-full rounded-lg border border-neutral-300 px-3 py-2 text-neutral-900 focus:border-neutral-900 focus:outline-none focus:ring-1 focus:ring-neutral-900"
-            />
-            {errors.phone && (
-              <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
-            )}
-          </div>
-
-          <div className="rounded-lg bg-neutral-100 p-3 text-xs text-neutral-500">
-            Votre e-mail et votre identifiant ne sont pas modifiables depuis cette page.
-          </div>
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:opacity-50"
-          >
-            {isSubmitting ? "Mise à jour…" : "Enregistrer"}
-          </button>
-        </form>
-      </div>
-    </div>
+    <AuthShell variant="page" title="Mon profil" subtitle={profile?.email}>
+      <AuthForm onSubmit={handleSubmit(onSubmit)} noValidate>
+        {serverError && <AuthAlert>{serverError}</AuthAlert>}
+        {successMessage && <AuthAlert tone="success">{successMessage}</AuthAlert>}
+        <AuthField
+          label="Nom complet"
+          type="text"
+          autoComplete="name"
+          error={errors.full_name?.message}
+          {...register("full_name")}
+        />
+        <AuthField
+          label="Téléphone"
+          type="tel"
+          autoComplete="tel"
+          inputMode="tel"
+          hint="Votre e-mail et votre identifiant ne sont pas modifiables depuis cette page."
+          error={errors.phone?.message}
+          {...register("phone")}
+        />
+        <AuthSubmit loading={isSubmitting} loadingLabel="Mise à jour…">
+          Enregistrer
+        </AuthSubmit>
+      </AuthForm>
+    </AuthShell>
   );
 }

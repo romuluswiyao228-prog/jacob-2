@@ -90,9 +90,9 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-5) var(--space-8);
-  background: var(--color-surface);
-  color: var(--color-text);
-  border: var(--border-width-thick) solid var(--color-surface);
+  background: var(--color-brand);
+  color: var(--color-bg);
+  border: var(--border-width-thick) solid var(--color-brand);
   font-size: var(--text-sm);
   font-weight: var(--weight-bold);
   text-transform: uppercase;
@@ -103,7 +103,7 @@
 .cta:hover,
 .cta:focus-visible {
   background: transparent;
-  color: var(--color-text-inverse);
+  color: var(--color-brand);
 }
 
 .cta:focus-visible {
@@ -133,8 +133,8 @@
 
 .categoryCard:hover,
 .categoryCard:focus-visible {
-  background: var(--color-bg);
-  color: var(--color-text-inverse);
+  background: var(--color-brand);
+  color: var(--color-bg);
 }
 
 .categoryName {
@@ -200,8 +200,9 @@
 /* --- La marque --- */
 
 .brand {
-  background: var(--color-bg);
-  color: var(--color-text-inverse);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-top: var(--border-width-thick) solid var(--color-bg);
 }
 
 .brandInner {
