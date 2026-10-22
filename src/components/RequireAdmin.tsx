@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth-context";
+import styles from "./RequireAdmin.module.css";
 
 export function RequireAdmin({ children }: { children: React.ReactNode }) {
   const { isLoading, user, isAdmin, aalLevel } = useAuth();
@@ -7,8 +8,8 @@ export function RequireAdmin({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-neutral-900">
-        <p className="text-neutral-400">Chargement…</p>
+      <div className={styles.loading}>
+        <p className={styles.loadingText}>Chargement…</p>
       </div>
     );
   }

@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth-context";
+import styles from "./RequireAuth.module.css";
 
 export function RequireAuth({ children }: { children: React.ReactNode }) {
   const { isLoading, user } = useAuth();
@@ -7,8 +8,8 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-gray-500">Chargement…</p>
+      <div className={styles.loading}>
+        <p className={styles.loadingText}>Chargement…</p>
       </div>
     );
   }
