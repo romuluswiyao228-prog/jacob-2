@@ -25,6 +25,7 @@ interface AuthShellProps {
   pitch?: string;
   /** « admin » : panneau noir. « page » : pas de panneau, carte centree. */
   variant?: "customer" | "admin" | "page";
+  breadcrumb?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
 }
@@ -34,6 +35,7 @@ export function AuthShell({
   subtitle,
   pitch,
   variant = "customer",
+  breadcrumb,
   children,
   footer,
 }: AuthShellProps) {
@@ -47,6 +49,11 @@ export function AuthShell({
   if (variant === "page") {
     return (
       <div className={styles.pageOnly}>
+        {breadcrumb && (
+          <div style={{ width: "100%", maxWidth: "480px", marginBottom: "var(--space-4)" }}>
+            {breadcrumb}
+          </div>
+        )}
         <div className={`${styles.card} ${styles.cardBoxed}`}>
           {header}
           {children}
@@ -88,6 +95,7 @@ export function AuthShell({
       </aside>
       <section className={styles.content}>
         <div className={styles.card}>
+          {breadcrumb && <div style={{ marginBottom: "var(--space-4)" }}>{breadcrumb}</div>}
           {header}
           {children}
           {footer && <div className={styles.footer}>{footer}</div>}

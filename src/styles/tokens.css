@@ -9,7 +9,7 @@
   --color-surface: #ffffff;
   --color-text: #0a0a0a;
   --color-text-inverse: #ffffff;
-  --color-text-muted: #6b6b6b;
+  --color-text-muted: #555555;
   --color-border: #0a0a0a;
   --color-border-subtle: #e5e5e5;
 
@@ -142,6 +142,13 @@ button {
   cursor: pointer;
   border: none;
   background: none;
+}
+
+/* Accessibility: Universal High-Contrast Focus Ring */
+:focus-visible {
+  outline: 2px solid #0a0a0a;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--color-brand);
 }
 
 input,

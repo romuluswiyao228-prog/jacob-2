@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { ProductCard } from "@/components/ui";
 import { Section } from "@/components/home/Section";
+import { SEO } from "@/components/SEO";
 import {
   useStoreSettings,
   useCategories,
@@ -114,6 +115,11 @@ export default function HomePage() {
 
   return (
     <div className={styles.page}>
+      <SEO
+        title={storeName}
+        description={intro || "Marque streetwear contemporaine. Pièces exclusives, finitions haut de gamme et esprit brut."}
+        ogImage={bannerUrl || "/favicon.svg"}
+      />
       <section className={styles.hero}>
         {bannerUrl && (
           <>

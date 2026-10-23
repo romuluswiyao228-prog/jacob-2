@@ -21,6 +21,7 @@ import {
   Breadcrumb,
   EmptyState,
 } from "@/components/ui";
+import { SEO } from "@/components/SEO";
 import styles from "./CheckoutPage.module.css";
 
 function formatXOF(amount: number): string {
@@ -28,7 +29,7 @@ function formatXOF(amount: number): string {
 }
 
 // Validation schéma en français
-const checkoutSchema = z.object({
+export const checkoutSchema = z.object({
   first_name: z
     .string()
     .trim()
@@ -515,6 +516,10 @@ export default function CheckoutPage() {
   if (items.length === 0) {
     return (
       <main className={styles.page}>
+        <SEO
+          title="Commander"
+          description="Votre panier est actuellement vide. Découvrez notre collection de streetwear contemporain."
+        />
         <div className={styles.container}>
           <div className={styles.breadcrumbNav}>
             <Breadcrumb
@@ -544,6 +549,10 @@ export default function CheckoutPage() {
 
   return (
     <main className={styles.page}>
+      <SEO
+        title="Finaliser la commande"
+        description="Renseignez vos coordonnées et choisissez votre mode de paiement pour valider votre commande sur JACOB DE JESUS."
+      />
       <div className={styles.container}>
         <div className={styles.breadcrumbNav}>
           <Breadcrumb

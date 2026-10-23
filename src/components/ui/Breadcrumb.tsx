@@ -9,12 +9,14 @@ export interface BreadcrumbItem {
 export interface BreadcrumbProps {
   items: BreadcrumbItem[];
   className?: string;
+  style?: React.CSSProperties;
 }
 
-export function Breadcrumb({ items, className }: BreadcrumbProps) {
+export function Breadcrumb({ items, className, style }: BreadcrumbProps) {
   return (
     <nav
       className={[styles.nav, className ?? ""].filter(Boolean).join(" ")}
+      style={style}
       aria-label="Fil d'ariane"
     >
       <ol className={styles.list}>

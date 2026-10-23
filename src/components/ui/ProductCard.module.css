@@ -20,14 +20,43 @@
   border-bottom: var(--border-width) solid var(--color-border);
 }
 
+.imageLink {
+  display: block;
+  width: 100%;
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
 .image {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform var(--transition-base);
+  transition: transform var(--transition-base), opacity var(--transition-base);
+}
+
+.secondaryImage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-base), transform var(--transition-base);
 }
 
 .card:hover .image {
+  transform: scale(1.03);
+}
+
+.card:hover .hasSecondary {
+  opacity: 0;
+}
+
+.card:hover .secondaryImage {
+  opacity: 1;
   transform: scale(1.03);
 }
 
@@ -168,7 +197,8 @@
 }
 
 .sizeActive {
-  background: var(--color-text);
-  color: var(--color-text-inverse);
-  border-color: var(--color-text);
+  background: var(--color-brand);
+  color: var(--color-neutral-900);
+  border-color: var(--color-neutral-900);
+  font-weight: var(--weight-bold);
 }

@@ -18,16 +18,17 @@ export function sortSizes(sizes: string[]): string[] {
   };
 
   return [...sizes].sort((a, b) => {
-    const numA = Number(a);
-    const numB = Number(b);
-    const isNumA = !isNaN(numA) && a.trim() !== "";
-    const isNumB = !isNaN(numB) && b.trim() !== "";
+    const cleanA = a.replace(/[^0-9.]/g, "");
+    const cleanB = b.replace(/[^0-9.]/g, "");
+    const numA = cleanA !== "" ? parseFloat(cleanA) : NaN;
+    const numB = cleanB !== "" ? parseFloat(cleanB) : NaN;
 
-    if (isNumA && isNumB) {
+    const orderA = clothingOrder[a.trim().toLowerCase()];
+    const orderB = clothingOrder[b.trim().toLowerCase()];
+
+    if (!isNaN(numA) && !isNaN(numB) && orderA === undefined && orderB === undefined) {
       return numA - numB;
     }
-    const orderA = clothingOrder[a.toLowerCase()];
-    const orderB = clothingOrder[b.toLowerCase()];
     if (orderA && orderB) {
       return orderA - orderB;
     }

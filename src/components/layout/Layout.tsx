@@ -4,6 +4,7 @@ import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { AnnouncementBanner } from "./AnnouncementBanner";
 import { WhatsAppButton } from "./WhatsAppButton";
+import { CartDrawer } from "@/components/ui/CartDrawer";
 import { useStoreSettings } from "@/lib/hooks";
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -23,6 +24,7 @@ export function Layout({ children }: { children: ReactNode }) {
       <Header storeName={settings?.store_name ?? "JACOB DE JESUS"} />
       <main>{children}</main>
       <Footer settings={settings} />
+      <CartDrawer />
       {settings?.whatsapp_number && (
         <WhatsAppButton phone={settings.whatsapp_number} />
       )}

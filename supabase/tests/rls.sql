@@ -205,7 +205,7 @@ RESET role;
 -- ============================================================
 
 SET LOCAL role = authenticated;
-SET LOCAL request.jwt.claims = '{"sub":"cccccccc-cccc-cccc-cccc-cccccccccccc","role":"authenticated"}';
+SET LOCAL request.jwt.claims = '{"sub":"cccccccc-cccc-cccc-cccc-cccccccccccc","role":"authenticated","aal":"aal2"}';
 
 -- Test 5a : Admin lit tous les produits (y compris archivés)
 DO $$ DECLARE cnt int;

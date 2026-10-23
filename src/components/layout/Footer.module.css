@@ -13,8 +13,8 @@
 
 .grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr));
-  gap: var(--space-8) var(--space-7);
+  grid-template-columns: minmax(0, 1.4fr) repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-8) var(--space-6);
   padding-bottom: clamp(40px, 6vw, 80px);
 }
 

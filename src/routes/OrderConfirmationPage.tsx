@@ -9,7 +9,8 @@ import {
   Printer,
   Key,
 } from "lucide-react";
-import { Button, EmptyState } from "@/components/ui";
+import { Button, EmptyState, Breadcrumb } from "@/components/ui";
+import { SEO } from "@/components/SEO";
 import type { CartLineItem } from "@/lib/cart-context";
 import styles from "./OrderConfirmationPage.module.css";
 
@@ -53,7 +54,19 @@ export default function OrderConfirmationPage() {
   if (!state || !state.orderNumber) {
     return (
       <main className={styles.page}>
+        <SEO
+          title="Confirmation de commande"
+          description="Consultez le récapitulatif de votre commande JACOB DE JESUS."
+        />
         <div className={styles.container}>
+          <Breadcrumb
+            items={[
+              { label: "Accueil", href: "/" },
+              { label: "Boutique", href: "/boutique" },
+              { label: "Confirmation de commande" },
+            ]}
+            style={{ marginBottom: "var(--space-4)" }}
+          />
           <EmptyState
             icon={<ShoppingBag size={56} strokeWidth={1} />}
             title="Aucune commande récente trouvée"
@@ -90,7 +103,19 @@ export default function OrderConfirmationPage() {
 
   return (
     <main className={styles.page}>
+      <SEO
+        title={`Commande ${state.orderNumber} confirmée`}
+        description="Votre commande a bien été enregistrée sur JACOB DE JESUS."
+      />
       <div className={styles.container}>
+        <Breadcrumb
+          items={[
+            { label: "Accueil", href: "/" },
+            { label: "Boutique", href: "/boutique" },
+            { label: "Confirmation de commande" },
+          ]}
+          style={{ marginBottom: "var(--space-4)" }}
+        />
         {/* Entête confirmation */}
         <header className={styles.header}>
           <div className={styles.successIconWrapper}>

@@ -1,0 +1,22 @@
+.map {
+  width: 100%;
+  height: 380px;
+  border: var(--border-width) solid var(--color-border);
+  outline: none;
+  background: var(--color-neutral-100);
+  /* Leaflet requires position to be anything other than static */
+  position: relative;
+  z-index: 0;
+}
+
+/* Focus ring accessible */
+.map:focus-visible {
+  outline: 3px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .map {
+    height: 260px;
+  }
+}

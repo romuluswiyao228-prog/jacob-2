@@ -1,7 +1,8 @@
-﻿import { Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Trash2, Plus, Minus, ShoppingBag, AlertTriangle } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
-import { Button, Skeleton, EmptyState, ErrorState } from "@/components/ui";
+import { Button, Skeleton, EmptyState, ErrorState, Breadcrumb } from "@/components/ui";
+import { SEO } from "@/components/SEO";
 import styles from "./CartPage.module.css";
 
 function formatXOF(amount: number): string {
@@ -24,7 +25,19 @@ export default function CartPage() {
 
   return (
     <main className={styles.page}>
+      <SEO
+        title="Mon Panier"
+        description="Consultez et modifiez les articles de votre panier d'achat JACOB DE JESUS."
+      />
       <div className={styles.container}>
+        <Breadcrumb
+          items={[
+            { label: "Accueil", href: "/" },
+            { label: "Boutique", href: "/boutique" },
+            { label: "Panier" },
+          ]}
+          style={{ marginBottom: "var(--space-4)" }}
+        />
         <header className={styles.pageHeader}>
           <h1 className={styles.title}>Mon Panier</h1>
           <span className={styles.count}>

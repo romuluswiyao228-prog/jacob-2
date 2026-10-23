@@ -17,7 +17,6 @@ export function Footer({ settings }: FooterProps) {
     .map((part) => part?.trim())
     .filter(Boolean)
     .join(", ");
-  const hasContact = Boolean(email || phone || settings?.address || settings?.city);
 
   const socialEntries = Object.entries(settings?.social_links ?? {}).filter(
     ([, url]) => url && url.trim().length > 0
@@ -40,6 +39,9 @@ export function Footer({ settings }: FooterProps) {
             <Link to="/boutique" className={styles.link}>
               Toute la collection
             </Link>
+            <Link to="/notre-boutique" className={styles.link}>
+              Notre boutique
+            </Link>
             <Link to="/favoris" className={styles.link}>
               Favoris
             </Link>
@@ -51,22 +53,42 @@ export function Footer({ settings }: FooterProps) {
             </Link>
           </nav>
 
-          {hasContact && (
-            <div className={styles.col}>
-              <h3 className={styles.heading}>Contact</h3>
-              {email && (
-                <a href={`mailto:${email}`} className={styles.link}>
-                  {email}
-                </a>
-              )}
-              {phone && (
-                <a href={`tel:${phone}`} className={styles.link}>
-                  {phone}
-                </a>
-              )}
-              {place && <p className={styles.text}>{place}</p>}
-            </div>
-          )}
+          <nav className={styles.col} aria-label="Informations légales">
+            <h3 className={styles.heading}>Légal & Service</h3>
+            <Link to="/conditions-generales" className={styles.link}>
+              Conditions générales
+            </Link>
+            <Link to="/confidentialite" className={styles.link}>
+              Confidentialité
+            </Link>
+            <Link to="/mentions-legales" className={styles.link}>
+              Mentions légales
+            </Link>
+            <Link to="/retours" className={styles.link}>
+              Retours & Échanges
+            </Link>
+            <Link to="/suivi" className={styles.link}>
+              Suivi de commande
+            </Link>
+          </nav>
+
+          <div className={styles.col}>
+            <h3 className={styles.heading}>Contact</h3>
+            <Link to="/contact" className={styles.link}>
+              Formulaire de contact
+            </Link>
+            {email && (
+              <a href={`mailto:${email}`} className={styles.link}>
+                {email}
+              </a>
+            )}
+            {phone && (
+              <a href={`tel:${phone}`} className={styles.link}>
+                {phone}
+              </a>
+            )}
+            {place && <p className={styles.text}>{place}</p>}
+          </div>
 
           {socialEntries.length > 0 && (
             <div className={styles.col}>

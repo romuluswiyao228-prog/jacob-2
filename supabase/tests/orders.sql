@@ -28,6 +28,9 @@ CREATE TEMP TABLE test_order_results (
   details text NOT NULL
 );
 
+GRANT ALL ON test_order_results TO PUBLIC;
+GRANT ALL ON SEQUENCE test_order_results_id_seq TO PUBLIC;
+
 -- ============================================================
 -- 1. Preparation des utilisateurs de test (Client A et Client B)
 -- ============================================================

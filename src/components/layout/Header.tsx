@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { useCart } from "@/lib/cart-context";
 import { useCategories } from "@/lib/hooks";
 import { Drawer } from "@/components/ui";
 import { Menu, Search, Heart, ShoppingBag, User, ChevronDown } from "lucide-react";
@@ -12,6 +13,7 @@ interface HeaderProps {
 
 export function Header({ storeName }: HeaderProps) {
   const { user } = useAuth();
+  const { totalItems, openCart } = useCart();
   const { data: categories } = useCategories();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -107,14 +109,15 @@ export function Header({ storeName }: HeaderProps) {
             >
               <Heart size={18} strokeWidth={1.5} />
             </Link>
-            <Link
-              to="/panier"
+            <button
+              type="button"
+              onClick={openCart}
               className={styles.iconBtn}
-              aria-label="Panier"
+              aria-label={`Panier (${totalItems} article${totalItems > 1 ? "s" : ""})`}
             >
               <ShoppingBag size={18} strokeWidth={1.5} />
-              <span className={styles.cartCount}>0</span>
-            </Link>
+              {totalItems > 0 && <span className={styles.cartCount}>{totalItems}</span>}
+            </button>
             <Link
               to={user ? "/compte" : "/connexion"}
               className={styles.iconBtn}

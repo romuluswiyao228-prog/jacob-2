@@ -14,6 +14,10 @@ const LoginPage = lazy(() => import("@/routes/LoginPage"));
 const SignUpPage = lazy(() => import("@/routes/SignUpPage"));
 const ForgotPasswordPage = lazy(() => import("@/routes/ForgotPasswordPage"));
 const ProfilePage = lazy(() => import("@/routes/ProfilePage"));
+const AddressesPage = lazy(() => import("@/routes/AddressesPage"));
+const OrdersHistoryPage = lazy(() => import("@/routes/OrdersHistoryPage"));
+const CustomerOrderDetailPage = lazy(() => import("@/routes/CustomerOrderDetailPage"));
+const GuestOrderTrackingPage = lazy(() => import("@/routes/GuestOrderTrackingPage"));
 
 const AdminLoginPage = lazy(() => import("@/routes/admin/AdminLoginPage"));
 const MfaSetupPage = lazy(() => import("@/routes/admin/MfaSetupPage"));
@@ -36,6 +40,9 @@ const FavoritesPage = lazy(() => import("@/routes/FavoritesPage"));
 const CartPage = lazy(() => import("@/routes/CartPage"));
 const CheckoutPage = lazy(() => import("@/routes/CheckoutPage"));
 const OrderConfirmationPage = lazy(() => import("@/routes/OrderConfirmationPage"));
+const ContactPage = lazy(() => import("@/routes/ContactPage"));
+const LegalPage = lazy(() => import("@/routes/LegalPage"));
+const StorePage = lazy(() => import("@/routes/StorePage"));
 const NotFoundPage = lazy(() => import("@/routes/NotFoundPage"));
 const NetworkErrorPage = lazy(() => import("@/routes/NetworkErrorPage"));
 
@@ -86,12 +93,24 @@ export default function App() {
                     <Route path="/commande" element={<CheckoutPage />} />
                     <Route path="/commande/confirmation" element={<OrderConfirmationPage />} />
 
+                    {/* Notre boutique */}
+                    <Route path="/notre-boutique" element={<StorePage />} />
+
+                    {/* Contact & Légal */}
+                    <Route path="/contact" element={<ContactPage />} />
+                    <Route path="/conditions-generales" element={<LegalPage />} />
+                    <Route path="/cgv" element={<LegalPage />} />
+                    <Route path="/confidentialite" element={<LegalPage />} />
+                    <Route path="/politique-confidentialite" element={<LegalPage />} />
+                    <Route path="/mentions-legales" element={<LegalPage />} />
+                    <Route path="/retours" element={<LegalPage />} />
+
                     {/* Auth routes */}
                     <Route path="/connexion" element={<LoginPage />} />
                     <Route path="/inscription" element={<SignUpPage />} />
                     <Route path="/mot-de-passe-oublie" element={<ForgotPasswordPage />} />
 
-                    {/* Protected client route */}
+                    {/* Protected client routes */}
                     <Route
                       path="/compte"
                       element={
@@ -100,6 +119,33 @@ export default function App() {
                         </RequireAuth>
                       }
                     />
+                    <Route
+                      path="/compte/adresses"
+                      element={
+                        <RequireAuth>
+                          <AddressesPage />
+                        </RequireAuth>
+                      }
+                    />
+                    <Route
+                      path="/compte/commandes"
+                      element={
+                        <RequireAuth>
+                          <OrdersHistoryPage />
+                        </RequireAuth>
+                      }
+                    />
+                    <Route
+                      path="/compte/commandes/:id"
+                      element={
+                        <RequireAuth>
+                          <CustomerOrderDetailPage />
+                        </RequireAuth>
+                      }
+                    />
+
+                    {/* Suivi commande invité */}
+                    <Route path="/suivi" element={<GuestOrderTrackingPage />} />
 
                     {/* Admin public/auth routes */}
                     <Route path="/admin/connexion" element={<AdminLoginPage />} />

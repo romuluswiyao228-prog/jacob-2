@@ -13,6 +13,7 @@ import {
   AuthButtonLink,
   AuthLink,
 } from "@/components/auth";
+import { Breadcrumb } from "@/components/ui";
 
 const schema = z.object({
   fullName: z.string().min(2, "Veuillez saisir votre nom complet."),
@@ -45,11 +46,21 @@ export default function SignUpPage() {
     }
   };
 
+  const breadcrumbEl = (
+    <Breadcrumb
+      items={[
+        { label: "Accueil", href: "/" },
+        { label: "Inscription" },
+      ]}
+    />
+  );
+
   if (success) {
     return (
       <AuthShell
         title="Compte créé"
         pitch="Plus qu'un clic pour activer votre compte."
+        breadcrumb={breadcrumbEl}
       >
         <AuthText>
           Un e-mail de confirmation vous a été envoyé. Cliquez sur le lien
@@ -63,6 +74,7 @@ export default function SignUpPage() {
   return (
     <AuthShell
       title="Créer un compte"
+      breadcrumb={breadcrumbEl}
       subtitle="Rejoignez JACOB DE JESUS."
       pitch="Suivez vos commandes et gardez vos pièces préférées."
       footer={

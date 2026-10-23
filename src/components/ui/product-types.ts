@@ -8,7 +8,8 @@ export interface ProductCardData {
   originalPrice?: number | null;
   image: string;
   imageAlt?: string;
-  sizes: string[];
+  secondaryImage?: string | null;
+  sizes?: string[];
   badge?: "new" | "sale" | "soldout" | null;
   isSoldOut?: boolean;
   isFavorite?: boolean;

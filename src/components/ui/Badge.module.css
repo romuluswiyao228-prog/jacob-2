@@ -29,8 +29,8 @@
 
 .soldout {
   background: var(--color-surface);
-  color: var(--color-neutral-500);
-  border-color: var(--color-neutral-300);
+  color: var(--color-neutral-700);
+  border-color: var(--color-neutral-400);
 }
 
 .neutral {

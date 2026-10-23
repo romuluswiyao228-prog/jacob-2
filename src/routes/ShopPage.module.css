@@ -1,11 +1,26 @@
 .page {
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: var(--space-8) var(--space-5);
+  padding: var(--space-6) var(--space-5) var(--space-11);
 }
 
+.breadcrumb {
+  margin-bottom: var(--space-5);
+}
+
+/* --- En-tête de catégorie avec le nombre d'articles --- */
 .header {
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-4);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.headerTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
 }
 
 .title {
@@ -15,42 +30,179 @@
   text-transform: uppercase;
   letter-spacing: var(--tracking-display);
   color: var(--color-text);
-  margin-bottom: var(--space-2);
+  margin: 0;
+}
+
+.articleCount {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-neutral-500);
 }
 
 .description {
+  margin-top: var(--space-2);
   font-size: var(--text-sm);
   color: var(--color-neutral-600);
-  max-width: 600px;
+  max-width: 680px;
+  line-height: var(--leading-body);
 }
 
-/* --- Search & Bar --- */
-.toolbar {
+/* --- Layout grille (Sidebar desktop + Contenu) --- */
+.contentLayout {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  margin-bottom: var(--space-6);
-  padding-bottom: var(--space-6);
-  border-bottom: var(--border-width) solid var(--color-border);
+  gap: var(--space-6);
 }
 
-@media (min-width: 768px) {
-  .toolbar {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
+@media (min-width: 992px) {
+  .contentLayout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: var(--space-8);
+    align-items: start;
   }
+}
+
+/* --- Barre latérale Desktop --- */
+.sidebar {
+  display: none;
+}
+
+@media (min-width: 992px) {
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    position: sticky;
+    top: 90px;
+  }
+}
+
+.filterSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-bottom: var(--space-5);
+  border-bottom: var(--border-width) solid var(--color-border-subtle);
+}
+
+.filterSectionTitle {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.filterList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.filterButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  background: transparent;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius);
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--transition-fast);
+}
+
+.filterButton:hover {
+  background: var(--color-neutral-100);
+}
+
+/* Sélection active en jaune de marque */
+.filterButtonActive {
+  background: var(--color-brand) !important;
+  color: var(--color-neutral-900) !important;
+  border-color: var(--color-neutral-900) !important;
+  font-weight: var(--weight-bold);
+}
+
+.sizeGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+}
+
+.sizeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-neutral-300);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.sizeButton:hover {
+  border-color: var(--color-text);
+}
+
+/* Sélection taille active en jaune de marque */
+.sizeButtonActive {
+  background: var(--color-brand) !important;
+  color: var(--color-neutral-900) !important;
+  border-color: var(--color-neutral-900) !important;
+  font-weight: var(--weight-bold);
+}
+
+/* --- Colonne principale --- */
+.mainCol {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* --- Toolbar --- */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 220px;
 }
 
 .searchWrap {
   position: relative;
   flex: 1;
-  max-width: 400px;
+  max-width: 360px;
 }
 
 .searchInput {
   width: 100%;
-  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-10);
+  padding: var(--space-2) var(--space-4) var(--space-2) var(--space-9);
   font-family: var(--font-body);
   font-size: var(--text-sm);
   border: var(--border-width) solid var(--color-border);
@@ -64,112 +216,253 @@
   left: var(--space-3);
   top: 50%;
   transform: translateY(-50%);
-  color: var(--color-neutral-400);
+  color: var(--color-neutral-500);
   pointer-events: none;
 }
 
-.sortSelect {
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* Bouton mobile FILTRER (n) */
+.mobileFilterBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  font-family: var(--font-mono);
   font-size: var(--text-xs);
   font-weight: var(--weight-bold);
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
-  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mobileFilterBtnBadge {
+  background: var(--color-brand);
+  color: var(--color-neutral-900);
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+@media (min-width: 992px) {
+  .mobileFilterBtn {
+    display: none;
+  }
+}
+
+.sortSelect {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  padding: var(--space-2) var(--space-3);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-surface);
   color: var(--color-text);
+  cursor: pointer;
 }
 
-/* --- Filter Pills --- */
-.filtersRow {
+/* --- Puces des filtres actifs supprimables --- */
+.activeFiltersRow {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
-  margin-bottom: var(--space-6);
-}
-
-.filterGroup {
-  display: flex;
   align-items: center;
   gap: var(--space-2);
-  flex-wrap: wrap;
+  margin-bottom: var(--space-5);
+  padding: var(--space-3);
+  background: var(--color-neutral-100);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius);
 }
 
-.filterLabel {
+.activeFiltersLabel {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   text-transform: uppercase;
-  color: var(--color-neutral-500);
+  color: var(--color-neutral-600);
 }
 
-.pill {
-  padding: var(--space-1) var(--space-3);
+.chipsWrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 3px var(--space-3);
+  font-family: var(--font-mono);
   font-size: var(--text-xs);
-  font-weight: var(--weight-bold);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-wide);
-  border: var(--border-width) solid var(--color-neutral-300);
-  border-radius: var(--radius);
+  font-weight: var(--weight-medium);
   background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
   color: var(--color-text);
-  cursor: pointer;
-  transition: all var(--transition-fast);
 }
 
-.pill:hover {
-  border-color: var(--color-text);
-}
-
-.pillActive {
-  background: var(--color-text);
-  color: var(--color-text-inverse);
-  border-color: var(--color-text);
-}
-
-.clearFilters {
-  font-size: var(--text-xs);
-  color: var(--color-neutral-500);
+.chipRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
-  text-decoration: underline;
+  padding: 0;
   cursor: pointer;
-  padding: var(--space-1);
+  color: var(--color-neutral-500);
+  transition: color var(--transition-fast);
 }
 
-/* --- Grid --- */
+.chipRemove:hover {
+  color: var(--color-accent);
+}
+
+.clearAllBtn {
+  background: none;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-neutral-600);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 2px var(--space-2);
+  margin-left: var(--space-2);
+}
+
+.clearAllBtn:hover {
+  color: var(--color-accent);
+}
+
+/* --- Grille des produits --- */
 .grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: var(--space-4);
-  margin-bottom: var(--space-10);
+  margin-bottom: var(--space-8);
 }
 
 @media (min-width: 640px) {
   .grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: var(--space-5);
   }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1200px) {
   .grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: var(--space-6);
   }
 }
 
-/* --- Pagination --- */
-.pagination {
+/* --- Bouton VOIR PLUS --- */
+.loadMoreWrap {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  gap: var(--space-4);
-  margin-top: var(--space-10);
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: var(--border-width) solid var(--color-border-subtle);
 }
 
-.pageInfo {
+.loadMoreBtn {
+  min-width: 200px;
+}
+
+.loadMoreCount {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   color: var(--color-neutral-500);
+  margin: 0;
+}
+
+/* --- Tiroir Mobile (Drawer) --- */
+.drawerBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  animation: fadeIn 150ms ease;
+}
+
+.drawerPanel {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 85%;
+  max-width: 340px;
+  background: var(--color-surface);
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
+  animation: slideInLeft 200ms ease;
+}
+
+.drawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.drawerTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-display);
+  margin: 0;
+}
+
+.drawerCloseBtn {
+  background: none;
+  border: none;
+  color: var(--color-text);
+  cursor: pointer;
+  padding: var(--space-1);
+}
+
+.drawerBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.drawerFooter {
+  padding: var(--space-4) var(--space-5);
+  border-top: var(--border-width) solid var(--color-border);
+  display: flex;
+  gap: var(--space-3);
+  background: var(--color-neutral-50);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
 }

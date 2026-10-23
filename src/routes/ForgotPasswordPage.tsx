@@ -13,6 +13,7 @@ import {
   AuthButtonLink,
   AuthLink,
 } from "@/components/auth";
+import { Breadcrumb } from "@/components/ui";
 
 const schema = z.object({
   email: z.string().email("Adresse e-mail invalide."),
@@ -41,9 +42,22 @@ export default function ForgotPasswordPage() {
     setSuccess(true);
   };
 
+  const breadcrumbEl = (
+    <Breadcrumb
+      items={[
+        { label: "Accueil", href: "/" },
+        { label: "Mot de passe oublié" },
+      ]}
+    />
+  );
+
   if (success) {
     return (
-      <AuthShell title="E-mail envoyé" pitch="Vérifiez votre boîte de réception.">
+      <AuthShell
+        title="E-mail envoyé"
+        pitch="Vérifiez votre boîte de réception."
+        breadcrumb={breadcrumbEl}
+      >
         <AuthText>
           Si un compte existe avec cette adresse, un e-mail de réinitialisation
           vous a été envoyé. Pensez à regarder dans vos courriers indésirables.
@@ -56,6 +70,7 @@ export default function ForgotPasswordPage() {
   return (
     <AuthShell
       title="Mot de passe oublié"
+      breadcrumb={breadcrumbEl}
       subtitle="Saisissez votre e-mail pour recevoir un lien de réinitialisation."
       pitch="Ça arrive. On vous renvoie un lien."
       footer={

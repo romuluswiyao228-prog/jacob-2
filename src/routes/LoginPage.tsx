@@ -12,6 +12,7 @@ import {
   AuthSubmit,
   AuthLink,
 } from "@/components/auth";
+import { Breadcrumb } from "@/components/ui";
 
 const schema = z.object({
   email: z.string().email("Adresse e-mail invalide."),
@@ -48,6 +49,14 @@ export default function LoginPage() {
       title="Connexion"
       subtitle="Connectez-vous à votre compte JACOB DE JESUS."
       pitch="Vos commandes et vos favoris, au même endroit."
+      breadcrumb={
+        <Breadcrumb
+          items={[
+            { label: "Accueil", href: "/" },
+            { label: "Connexion" },
+          ]}
+        />
+      }
       footer={
         <>
           <p>

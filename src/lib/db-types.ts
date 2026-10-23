@@ -67,6 +67,10 @@ export interface StoreSettings {
   announcement_text: string | null;
   whatsapp_number: string | null;
   banner_url: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  opening_hours: string | null;
+  returns_policy: string | null;
 }
 
 export interface PublicStoreSettings {
@@ -88,6 +92,10 @@ export interface PublicStoreSettings {
   announcement_text: string | null;
   whatsapp_number: string | null;
   banner_url: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  opening_hours: string | null;
+  returns_policy: string | null;
 }
 
 export interface ProductVariant {

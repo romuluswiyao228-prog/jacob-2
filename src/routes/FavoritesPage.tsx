@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
-import { ProductCard, Skeleton, EmptyState, ErrorState, Button } from "@/components/ui";
+import { ProductCard, Skeleton, EmptyState, ErrorState, Button, Breadcrumb } from "@/components/ui";
+import { SEO } from "@/components/SEO";
 import type { ProductWithImage } from "@/lib/db-types";
 import type { ProductCardData } from "@/components/ui";
 
@@ -142,6 +143,17 @@ export default function FavoritesPage() {
 
   return (
     <div style={{ maxWidth: "var(--max-width)", margin: "0 auto", padding: "var(--space-8) var(--space-5)" }}>
+      <SEO
+        title="Mes Favoris"
+        description="Retrouvez toutes les pièces que vous avez enregistrées dans votre liste d'envies JACOB DE JESUS."
+      />
+      <Breadcrumb
+        items={[
+          { label: "Accueil", href: "/" },
+          { label: "Favoris" },
+        ]}
+        style={{ marginBottom: "var(--space-5)" }}
+      />
       <h1
         style={{
           fontFamily: "var(--font-display)",
