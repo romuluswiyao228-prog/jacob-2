@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,6 +23,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -46,25 +48,25 @@ export default function LoginPage() {
 
   return (
     <AuthShell
-      title="Connexion"
-      subtitle="Connectez-vous à votre compte JACOB DE JESUS."
+      title={t("auth.loginTitle")}
+      subtitle={t("auth.loginSubtitle")}
       pitch="Vos commandes et vos favoris, au même endroit."
       breadcrumb={
         <Breadcrumb
           items={[
-            { label: "Accueil", href: "/" },
-            { label: "Connexion" },
+            { label: t("common.home"), href: "/" },
+            { label: t("auth.loginTitle") },
           ]}
         />
       }
       footer={
         <>
           <p>
-            Pas encore de compte ?{" "}
-            <AuthLink to="/inscription">Créer un compte</AuthLink>
+            {t("auth.noAccount")}{" "}
+            <AuthLink to="/inscription">{t("auth.createAccount")}</AuthLink>
           </p>
           <p>
-            <AuthLink to="/mot-de-passe-oublie">Mot de passe oublié ?</AuthLink>
+            <AuthLink to="/mot-de-passe-oublie">{t("auth.forgotPassword")}</AuthLink>
           </p>
         </>
       }
@@ -72,7 +74,7 @@ export default function LoginPage() {
       <AuthForm onSubmit={handleSubmit(onSubmit)} noValidate>
         {serverError && <AuthAlert>{serverError}</AuthAlert>}
         <AuthField
-          label="E-mail"
+          label={t("auth.email")}
           type="email"
           autoComplete="email"
           inputMode="email"
@@ -80,14 +82,14 @@ export default function LoginPage() {
           {...register("email")}
         />
         <AuthField
-          label="Mot de passe"
+          label={t("auth.password")}
           type="password"
           autoComplete="current-password"
           error={errors.password?.message}
           {...register("password")}
         />
         <AuthSubmit loading={isSubmitting} loadingLabel="Connexion…">
-          Se connecter
+          {t("auth.loginBtn")}
         </AuthSubmit>
       </AuthForm>
     </AuthShell>

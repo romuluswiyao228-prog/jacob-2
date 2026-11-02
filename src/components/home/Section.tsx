@@ -1,5 +1,6 @@
 import { type ReactNode } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button, Skeleton, ErrorState } from "@/components/ui";
 import styles from "./Section.module.css";
 
@@ -24,12 +25,15 @@ export function Section({
   hasData = true,
   onRetry,
   moreHref,
-  moreLabel = "Tout voir",
+  moreLabel,
   tone = "plain",
   children,
 }: SectionProps) {
+  const { t } = useTranslation();
   // Une section sans donnees disparait : pas de titre au-dessus du vide.
   if (!isLoading && !error && !hasData) return null;
+
+  const resolvedMoreLabel = moreLabel ?? t("common.seeAll", "Tout voir");
 
   return (
     <section
@@ -40,7 +44,7 @@ export function Section({
           <h2 className={styles.title}>{title}</h2>
           {moreHref && hasData && !isLoading && !error && (
             <Link to={moreHref} className={styles.more}>
-              {moreLabel}
+              {resolvedMoreLabel}
             </Link>
           )}
         </div>
@@ -58,7 +62,7 @@ export function Section({
               action={
                 onRetry && (
                   <Button variant="outline" size="sm" onClick={onRetry}>
-                    Réessayer
+                    {t("common.retry", "Réessayer")}
                   </Button>
                 )
               }

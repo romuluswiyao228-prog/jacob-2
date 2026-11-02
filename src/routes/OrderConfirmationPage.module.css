@@ -147,6 +147,83 @@
   color: var(--color-text, #0a0a0a);
 }
 
+/* Bloc WhatsApp fond jaune de marque */
+.whatsappCard {
+  background: var(--color-brand);
+  border: 2px solid var(--color-text, #0a0a0a);
+  padding: var(--space-5) var(--space-6);
+  margin-bottom: var(--space-6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+@media (max-width: 640px) {
+  .whatsappCard {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-4);
+  }
+}
+
+.whatsappCardContent {
+  flex: 1;
+}
+
+.whatsappCardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+
+.whatsappIcon {
+  color: var(--color-neutral-900, #0a0a0a);
+  flex-shrink: 0;
+}
+
+.whatsappCardTitle {
+  font-family: var(--font-display, "Anton", sans-serif);
+  font-size: var(--text-base, 1rem);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide, 0.04em);
+  color: var(--color-neutral-900, #0a0a0a);
+}
+
+.whatsappCardText {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-neutral-900, #0a0a0a);
+  line-height: var(--leading-body, 1.5);
+  margin: 0;
+}
+
+.whatsappBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  background: var(--color-text, #0a0a0a);
+  color: var(--color-surface, #ffffff);
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: var(--weight-bold, 700);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide, 0.05em);
+  text-decoration: none;
+  border: 2px solid var(--color-text, #0a0a0a);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all var(--transition-fast, 100ms ease);
+}
+
+.whatsappBtn:hover {
+  background: transparent;
+  color: var(--color-text, #0a0a0a);
+}
+
 /* Cartes détails */
 .sectionCard {
   background: var(--color-surface, #ffffff);
@@ -341,7 +418,8 @@
 
 @media print {
   .actionsRow,
-  .copyBtn {
+  .copyBtn,
+  .whatsappCard {
     display: none !important;
   }
   .page {

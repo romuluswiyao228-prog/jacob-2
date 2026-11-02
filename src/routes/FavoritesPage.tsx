@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { ProductCard, Skeleton, EmptyState, ErrorState, Button, Breadcrumb } from "@/components/ui";
@@ -8,6 +9,7 @@ import type { ProductWithImage } from "@/lib/db-types";
 import type { ProductCardData } from "@/components/ui";
 
 export default function FavoritesPage() {
+  const { t } = useTranslation();
   const { user, isLoading: authLoading } = useAuth();
   const [favoriteProducts, setFavoriteProducts] = useState<ProductWithImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -96,7 +98,7 @@ export default function FavoritesPage() {
     return (
       <div style={{ maxWidth: "var(--max-width)", margin: "0 auto", padding: "var(--space-8) var(--space-5)" }}>
         <h1 style={{ fontFamily: "var(--font-display)", textTransform: "uppercase", marginBottom: "var(--space-6)" }}>
-          Mes Favoris
+          {t("account.favoritesTitle")}
         </h1>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "var(--space-5)" }}>
           {Array.from({ length: 4 }).map((_, i) => (
@@ -111,12 +113,12 @@ export default function FavoritesPage() {
     return (
       <div style={{ maxWidth: "var(--max-width)", margin: "0 auto", padding: "var(--space-12) var(--space-5)", textAlign: "center" }}>
         <EmptyState
-          title="Connectez-vous pour voir vos favoris"
-          description="Enregistrez vos articles préférés pour les retrouver à tout moment."
+          title={t("auth.loginTitle")}
+          description={t("account.noFavoritesDesc")}
           action={
             <Link to="/connexion">
               <Button variant="primary" size="md">
-                Se connecter
+                {t("auth.signInLink")}
               </Button>
             </Link>
           }
@@ -133,7 +135,7 @@ export default function FavoritesPage() {
           message={error}
           action={
             <Button variant="outline" size="sm" onClick={loadFavorites}>
-              Réessayer
+              {t("common.retry")}
             </Button>
           }
         />
@@ -144,13 +146,13 @@ export default function FavoritesPage() {
   return (
     <div style={{ maxWidth: "var(--max-width)", margin: "0 auto", padding: "var(--space-8) var(--space-5)" }}>
       <SEO
-        title="Mes Favoris"
+        title={t("account.favoritesTitle")}
         description="Retrouvez toutes les pièces que vous avez enregistrées dans votre liste d'envies JACOB DE JESUS."
       />
       <Breadcrumb
         items={[
-          { label: "Accueil", href: "/" },
-          { label: "Favoris" },
+          { label: t("common.home"), href: "/" },
+          { label: t("account.favoritesTitle") },
         ]}
         style={{ marginBottom: "var(--space-5)" }}
       />
@@ -164,17 +166,17 @@ export default function FavoritesPage() {
           marginBottom: "var(--space-6)",
         }}
       >
-        Mes Favoris ({favoriteProducts.length})
+        {t("account.favoritesTitle")} ({favoriteProducts.length})
       </h1>
 
       {favoriteProducts.length === 0 ? (
         <EmptyState
-          title="Votre liste de favoris est vide"
-          description="Explorez nos collections et appuyez sur le cœur pour enregistrer vos coups de cœur."
+          title={t("account.noFavorites")}
+          description={t("account.noFavoritesDesc")}
           action={
             <Link to="/boutique">
               <Button variant="primary" size="md">
-                Explorer la boutique
+                {t("cart.goToShop")}
               </Button>
             </Link>
           }

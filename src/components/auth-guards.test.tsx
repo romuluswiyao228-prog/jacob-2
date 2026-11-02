@@ -7,8 +7,12 @@ import type { User } from "@supabase/supabase-js";
 vi.mock("@/lib/auth-context", () => ({
   useAuth: vi.fn(),
 }));
+vi.mock("@/lib/admin-mfa", () => ({
+  fetchAdminRequiresMfa: vi.fn(),
+}));
 
 import { useAuth } from "@/lib/auth-context";
+import { fetchAdminRequiresMfa } from "@/lib/admin-mfa";
 import { RequireAuth } from "@/components/RequireAuth";
 import { RequireAdmin } from "@/components/RequireAdmin";
 
@@ -52,11 +56,17 @@ async function renderInRouter(element: ReactElement): Promise<HTMLDivElement> {
       </MemoryRouter>
     );
   });
+  // laisse le temps aux gardes de recevoir la réponse de la base
+  await act(async () => {
+    await Promise.resolve();
+  });
   return container;
 }
 
 beforeEach(() => {
   vi.mocked(useAuth).mockReset();
+  vi.mocked(fetchAdminRequiresMfa).mockReset();
+  vi.mocked(fetchAdminRequiresMfa).mockResolvedValue(true);
 });
 
 afterEach(() => {
@@ -92,7 +102,7 @@ describe("RequireAdmin", () => {
     expect(container.querySelector('[data-testid="admin-child"]')).toBeNull();
   });
 
-  it("refuse l'accès si la MFA n'est pas activée (aal1)", async () => {
+  it("refuse l'accès si la MFA est exigée et que le niveau est aal1", async () => {
     vi.mocked(useAuth).mockReturnValue(
       makeAuthState({ isLoading: false, user: mockUser, isAdmin: true, aalLevel: "aal1" })
     );
@@ -102,6 +112,45 @@ describe("RequireAdmin", () => {
       </RequireAdmin>
     );
     expect(container.querySelector('[data-testid="mfa-setup"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="admin-child"]')).toBeNull();
+  });
+
+  it("autorise le propriétaire avec la MFA exigée et le niveau aal2", async () => {
+    vi.mocked(useAuth).mockReturnValue(
+      makeAuthState({ isLoading: false, user: mockUser, isAdmin: true, aalLevel: "aal2" })
+    );
+    const container = await renderInRouter(
+      <RequireAdmin>
+        <div data-testid="admin-child" />
+      </RequireAdmin>
+    );
+    expect(container.querySelector('[data-testid="admin-child"]')).toBeTruthy();
+  });
+
+  it("autorise le propriétaire avec le mot de passe seul quand la MFA n'est pas exigée", async () => {
+    vi.mocked(fetchAdminRequiresMfa).mockResolvedValue(false);
+    vi.mocked(useAuth).mockReturnValue(
+      makeAuthState({ isLoading: false, user: mockUser, isAdmin: true, aalLevel: "aal1" })
+    );
+    const container = await renderInRouter(
+      <RequireAdmin>
+        <div data-testid="admin-child" />
+      </RequireAdmin>
+    );
+    expect(container.querySelector('[data-testid="admin-child"]')).toBeTruthy();
+  });
+
+  it("refuse toujours un utilisateur non propriétaire, même sans MFA exigée", async () => {
+    vi.mocked(fetchAdminRequiresMfa).mockResolvedValue(false);
+    vi.mocked(useAuth).mockReturnValue(
+      makeAuthState({ isLoading: false, user: mockUser, isAdmin: false, aalLevel: "aal1" })
+    );
+    const container = await renderInRouter(
+      <RequireAdmin>
+        <div data-testid="admin-child" />
+      </RequireAdmin>
+    );
+    expect(container.querySelector('[data-testid="admin-login"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="admin-child"]')).toBeNull();
   });
 });

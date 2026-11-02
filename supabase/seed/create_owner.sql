@@ -31,7 +31,7 @@ BEGIN
   -- Vérifier qu'un utilisateur existe avec cet email
   SELECT id INTO target_user_id
   FROM auth.users
-  WHERE email = 'owner@example.com';
+  WHERE email = 'lalegendrom1@gmail.com';
 
   IF target_user_id IS NULL THEN
     RAISE EXCEPTION 'Aucun utilisateur trouvé avec cet email. Inscrivez-vous d''abord sur le site, confirmez votre e-mail, puis réexécutez ce script.';

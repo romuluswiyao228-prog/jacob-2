@@ -76,7 +76,10 @@ DECLARE
   r text;
   n int;
   v text;
+  req boolean := public.admin_requires_mfa();
 BEGIN
+  PERFORM pg_temp.rec('0 interrupteur MFA lu dans la base', true, CASE WHEN req THEN 'MFA exigee : mot de passe + code' ELSE 'MFA non exigee : mot de passe seul' END);
+
   -- TEST 1 : un client inscrit a uniquement le role customer
   SELECT count(*), min(role::text) INTO n, v FROM public.user_roles
    WHERE user_id = 'a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1';
@@ -119,7 +122,7 @@ BEGIN
   r := pg_temp.try_as('authenticated', claims_a, $q$SELECT public.admin_dashboard_stats()$q$);
   PERFORM pg_temp.rec('4b admin_dashboard_stats refuse un client', r LIKE 'error:%', r);
   r := pg_temp.try_as('authenticated', owner1, $q$SELECT public.admin_dashboard_stats()$q$);
-  PERFORM pg_temp.rec('4c admin_dashboard_stats refuse le proprietaire sans MFA', r LIKE 'error:%', r);
+  PERFORM pg_temp.rec('4c proprietaire sans code : refuse si la MFA est exigee, accepte sinon', CASE WHEN req THEN r LIKE 'error:%' ELSE r = 'rows:1' END, r);
   r := pg_temp.try_as('authenticated', owner2, $q$SELECT public.admin_dashboard_stats()$q$);
   PERFORM pg_temp.rec('4d admin_dashboard_stats accepte le proprietaire avec MFA', r = 'rows:1', r);
 
@@ -127,13 +130,13 @@ BEGIN
   SELECT count(*) INTO n FROM public.store_settings;
   PERFORM pg_temp.rec('5 prerequis : une ligne store_settings existe', n >= 1, n || ' ligne(s)');
   r := pg_temp.try_as('authenticated', owner1, $q$SELECT 1 FROM public.contact_messages$q$);
-  PERFORM pg_temp.rec('5a aal1 ne lit pas contact_messages', r = 'rows:0', r);
+  PERFORM pg_temp.rec('5a sans code : contact_messages (bloque si MFA exigee)', CASE WHEN req THEN r = 'rows:0' ELSE r = 'rows:1' END, r);
   r := pg_temp.try_as('authenticated', owner1, $q$SELECT 1 FROM public.products WHERE slug = 'authtest-archived'$q$);
-  PERFORM pg_temp.rec('5b aal1 ne lit pas les produits archives', r = 'rows:0', r);
+  PERFORM pg_temp.rec('5b sans code : produits archives (bloque si MFA exigee)', CASE WHEN req THEN r = 'rows:0' ELSE r = 'rows:1' END, r);
   r := pg_temp.try_as('authenticated', owner1, $q$UPDATE public.products SET is_featured = true WHERE slug = 'authtest-visible'$q$);
-  PERFORM pg_temp.rec('5c aal1 ne modifie pas les produits', r IN ('rows:0', 'error:42501'), r);
+  PERFORM pg_temp.rec('5c sans code : modification produit (bloquee si MFA exigee)', CASE WHEN req THEN r IN ('rows:0', 'error:42501') ELSE r = 'rows:1' END, r);
   r := pg_temp.try_as('authenticated', owner1, $q$UPDATE public.store_settings SET store_name = store_name$q$);
-  PERFORM pg_temp.rec('5d aal1 ne modifie pas store_settings', r IN ('rows:0', 'error:42501'), r);
+  PERFORM pg_temp.rec('5d sans code : modification reglages (bloquee si MFA exigee)', CASE WHEN req THEN r IN ('rows:0', 'error:42501') ELSE r = 'rows:1' END, r);
 
   -- TEST 6 : proprietaire AVEC MFA (aal2) : acces complet
   r := pg_temp.try_as('authenticated', owner2, $q$SELECT 1 FROM public.products WHERE slug = 'authtest-archived'$q$);

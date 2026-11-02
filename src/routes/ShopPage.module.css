@@ -202,7 +202,9 @@
 
 .searchInput {
   width: 100%;
-  padding: var(--space-2) var(--space-4) var(--space-2) var(--space-9);
+  padding-block: var(--space-2);
+  padding-inline-start: var(--space-9);
+  padding-inline-end: var(--space-4);
   font-family: var(--font-body);
   font-size: var(--text-sm);
   border: var(--border-width) solid var(--color-border);
@@ -213,7 +215,7 @@
 
 .searchIcon {
   position: absolute;
-  left: var(--space-3);
+  inset-inline-start: var(--space-3);
   top: 50%;
   transform: translateY(-50%);
   color: var(--color-neutral-500);
@@ -339,7 +341,7 @@
   text-decoration: underline;
   cursor: pointer;
   padding: 2px var(--space-2);
-  margin-left: var(--space-2);
+  margin-inline-start: var(--space-2);
 }
 
 .clearAllBtn:hover {
@@ -404,7 +406,7 @@
   position: fixed;
   top: 0;
   bottom: 0;
-  left: 0;
+  inset-inline-start: 0;
   width: 85%;
   max-width: 340px;
   background: var(--color-surface);

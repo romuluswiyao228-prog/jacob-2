@@ -71,6 +71,7 @@ export interface StoreSettings {
   longitude: number | null;
   opening_hours: string | null;
   returns_policy: string | null;
+  enabled_currencies?: string[];
 }
 
 export interface PublicStoreSettings {
@@ -96,6 +97,13 @@ export interface PublicStoreSettings {
   longitude: number | null;
   opening_hours: string | null;
   returns_policy: string | null;
+  enabled_currencies?: string[];
+}
+
+export interface ExchangeRateRow {
+  devise: string;
+  taux: number;
+  mis_a_jour: string;
 }
 
 export interface ProductVariant {

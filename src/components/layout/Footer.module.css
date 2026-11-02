@@ -83,8 +83,17 @@
   user-select: none;
 }
 
-.legal {
+.bottomRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
   margin-top: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.legal {
+  margin-top: 0;
   font-size: var(--text-sm);
   color: var(--color-neutral-800);
 }

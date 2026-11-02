@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,6 +23,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function ProfilePage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -82,7 +84,7 @@ export default function ProfilePage() {
 
   return (
     <AccountLayout
-      title="Mon profil"
+      title={t("account.profileTitle")}
       subtitle={profile?.email ? `Connecté avec ${profile.email}` : undefined}
     >
       <div style={{ maxWidth: "560px", margin: "0 auto" }}>
@@ -99,7 +101,7 @@ export default function ProfilePage() {
             message={serverError}
             action={
               <Button variant="outline" size="sm" onClick={loadProfile}>
-                Réessayer
+                {t("common.retry")}
               </Button>
             }
           />
@@ -118,14 +120,14 @@ export default function ProfilePage() {
                 <AuthAlert tone="success">{successMessage}</AuthAlert>
               )}
               <AuthField
-                label="Nom complet"
+                label={t("auth.fullName", "Nom complet")}
                 type="text"
                 autoComplete="name"
                 error={errors.full_name?.message}
                 {...register("full_name")}
               />
               <AuthField
-                label="Téléphone"
+                label={t("checkout.phone", "Téléphone")}
                 type="tel"
                 autoComplete="tel"
                 inputMode="tel"
@@ -134,7 +136,7 @@ export default function ProfilePage() {
                 {...register("phone")}
               />
               <AuthSubmit loading={isSubmitting} loadingLabel="Mise à jour…">
-                Enregistrer les modifications
+                {t("account.saveProfile")}
               </AuthSubmit>
             </AuthForm>
           </div>

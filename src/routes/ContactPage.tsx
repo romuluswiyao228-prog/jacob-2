@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Phone,
   Mail,
@@ -22,6 +23,7 @@ import { SEO } from "@/components/SEO";
 import styles from "./ContactPage.module.css";
 
 export default function ContactPage() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const { data: settings } = useStoreSettings();
 
@@ -166,20 +168,20 @@ export default function ContactPage() {
   return (
     <div className={styles.page}>
       <SEO
-        title="Contact"
-        description="Une question sur une pièce, une commande ou un drop ? Contactez le service client JACOB DE JESUS."
+        title={t("contact.title")}
+        description={t("contact.subtitle")}
       />
       <Breadcrumb
         items={[
-          { label: "Accueil", href: "/" },
-          { label: "Contact" },
+          { label: t("common.home"), href: "/" },
+          { label: t("contact.title") },
         ]}
         style={{ marginBottom: "var(--space-4)" }}
       />
       <header className={styles.header}>
-        <h1 className={styles.title}>Contactez-nous</h1>
+        <h1 className={styles.title}>{t("contact.title")}</h1>
         <p className={styles.subtitle}>
-          Une question sur une pièce, une commande ou un drop ? Notre équipe vous répond avec soin et rapidité.
+          {t("contact.subtitle")}
         </p>
       </header>
 
@@ -187,7 +189,7 @@ export default function ContactPage() {
         {/* Colonne 1 : Coordonnées réelles depuis public_store_settings */}
         <aside className={styles.infoColumn}>
           <div className={styles.infoCard}>
-            <h2 className={styles.infoHeading}>Nos Canaux</h2>
+            <h2 className={styles.infoHeading}>{t("contact.channelsTitle")}</h2>
 
             <div className={styles.channelsList}>
               {/* WhatsApp direct */}
@@ -202,8 +204,8 @@ export default function ContactPage() {
                     <MessageCircle size={20} />
                   </div>
                   <div className={styles.channelContent}>
-                    <span className={styles.channelLabel}>WhatsApp officiel</span>
-                    <span className={styles.channelValue}>Discuter en direct</span>
+                    <span className={styles.channelLabel}>{t("contact.whatsappChannel")}</span>
+                    <span className={styles.channelValue}>{t("contact.whatsappAction")}</span>
                   </div>
                 </a>
               )}
@@ -215,7 +217,7 @@ export default function ContactPage() {
                     <Phone size={20} />
                   </div>
                   <div className={styles.channelContent}>
-                    <span className={styles.channelLabel}>Service client</span>
+                    <span className={styles.channelLabel}>{t("contact.phoneChannel")}</span>
                     <span className={styles.channelValue}>{phoneContact}</span>
                   </div>
                 </a>
@@ -228,7 +230,7 @@ export default function ContactPage() {
                     <Mail size={20} />
                   </div>
                   <div className={styles.channelContent}>
-                    <span className={styles.channelLabel}>E-mail</span>
+                    <span className={styles.channelLabel}>{t("contact.emailChannel")}</span>
                     <span className={styles.channelValue}>{emailContact}</span>
                   </div>
                 </a>
@@ -241,7 +243,7 @@ export default function ContactPage() {
                     <MapPin size={20} />
                   </div>
                   <div className={styles.channelContent}>
-                    <span className={styles.channelLabel}>Boutique physique</span>
+                    <span className={styles.channelLabel}>{t("contact.storeChannel")}</span>
                     <span className={styles.channelValue}>{fullAddress}</span>
                   </div>
                 </div>
@@ -254,7 +256,7 @@ export default function ContactPage() {
                     <Clock size={20} />
                   </div>
                   <div className={styles.channelContent}>
-                    <span className={styles.channelLabel}>Horaires d'accueil</span>
+                    <span className={styles.channelLabel}>{t("contact.hoursChannel")}</span>
                     <span
                       className={styles.channelValue}
                       style={{ whiteSpace: "pre-line", fontWeight: "normal", fontSize: "0.85rem" }}
@@ -331,7 +333,7 @@ export default function ContactPage() {
                 />
 
                 <AuthField
-                  label="Nom complet *"
+                  label={`${t("contact.fullName")} *`}
                   type="text"
                   required
                   maxLength={100}
@@ -342,7 +344,7 @@ export default function ContactPage() {
                 />
 
                 <AuthField
-                  label="Adresse e-mail *"
+                  label={`${t("contact.email")} *`}
                   type="email"
                   required
                   value={email}
@@ -352,7 +354,7 @@ export default function ContactPage() {
                 />
 
                 <AuthField
-                  label="Numéro de téléphone (facultatif)"
+                  label={t("contact.phone")}
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
@@ -370,7 +372,7 @@ export default function ContactPage() {
                 />
 
                 <AuthField
-                  label="Objet de votre demande *"
+                  label={`${t("contact.subject")} *`}
                   type="text"
                   required
                   maxLength={150}
@@ -381,7 +383,7 @@ export default function ContactPage() {
 
                 <div className={styles.fieldWrapper}>
                   <label htmlFor="contact_message" className={styles.fieldLabel}>
-                    <span>Message *</span>
+                    <span>{t("contact.message")} *</span>
                     <span className={styles.charCount}>{message.length} / 2000</span>
                   </label>
                   <textarea
@@ -397,9 +399,9 @@ export default function ContactPage() {
 
                 <AuthSubmit
                   loading={isSubmitting}
-                  loadingLabel="Envoi en cours…"
+                  loadingLabel={t("contact.sending")}
                 >
-                  Envoyer le message
+                  {t("contact.sendBtn")}
                 </AuthSubmit>
               </AuthForm>
             )}

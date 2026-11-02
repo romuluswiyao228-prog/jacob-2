@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
@@ -14,6 +15,7 @@ import styles from "./ShopPage.module.css";
 const PAGE_SIZE = 12;
 
 export default function ShopPage() {
+  const { t } = useTranslation();
   const { slug } = useParams<{ slug?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
@@ -369,13 +371,13 @@ export default function ShopPage() {
       {/* 4. Fil d'Ariane */}
       <Breadcrumb
         items={[
-          { label: "Accueil", href: "/" },
+          { label: t("common.home"), href: "/" },
           ...(currentCategory
             ? [
-                { label: "Boutique", href: "/boutique" },
+                { label: t("common.shop"), href: "/boutique" },
                 { label: currentCategory.name },
               ]
-            : [{ label: "Boutique" }]),
+            : [{ label: t("common.shop") }]),
         ]}
         className={styles.breadcrumb}
       />
@@ -384,10 +386,10 @@ export default function ShopPage() {
       <header className={styles.header}>
         <div className={styles.headerTop}>
           <h1 className={styles.title}>
-            {currentCategory ? currentCategory.name : "Catalogue"}
+            {currentCategory ? currentCategory.name : t("shop.title")}
           </h1>
           <span className={styles.articleCount}>
-            {totalCount} {totalCount > 1 ? "articles" : "article"}
+            {t("shop.itemCount", { count: totalCount })}
           </span>
         </div>
         {currentCategory?.description && (
@@ -400,7 +402,7 @@ export default function ShopPage() {
         <aside className={styles.sidebar}>
           {/* Catégories */}
           <section className={styles.filterSection}>
-            <h2 className={styles.filterSectionTitle}>Catégories</h2>
+            <h2 className={styles.filterSectionTitle}>{t("shop.categories")}</h2>
             <div className={styles.filterList}>
               <button
                 type="button"
@@ -412,7 +414,7 @@ export default function ShopPage() {
                   .join(" ")}
                 onClick={() => handleCategorySelect("")}
               >
-                <span>Tous</span>
+                <span>{t("shop.allCategories")}</span>
               </button>
               {categories?.map((cat) => (
                 <button
@@ -437,7 +439,7 @@ export default function ShopPage() {
           {/* Filtre de taille limité aux tailles existantes, masqué pour Bijoux et Lunettes */}
           {!isNoSizeCategory(selectedCategorySlug) && availableSizes.length > 0 && (
             <section className={styles.filterSection}>
-              <h2 className={styles.filterSectionTitle}>Tailles</h2>
+              <h2 className={styles.filterSectionTitle}>{t("shop.size")}</h2>
               <div className={styles.sizeGrid}>
                 {availableSizes.map((size) => {
                   const isActive = selectedSize === size;
@@ -473,7 +475,7 @@ export default function ShopPage() {
                   type="search"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder="Rechercher une pièce…"
+                  placeholder={t("shop.searchPlaceholder")}
                   className={styles.searchInput}
                 />
               </div>
@@ -487,7 +489,7 @@ export default function ShopPage() {
                 onClick={() => setMobileDrawerOpen(true)}
               >
                 <SlidersHorizontal size={14} />
-                <span>FILTRER</span>
+                <span>{t("shop.filterTitle").toUpperCase()}</span>
                 {activeFiltersCount > 0 && (
                   <span className={styles.mobileFilterBtnBadge}>
                     {activeFiltersCount}
@@ -499,11 +501,11 @@ export default function ShopPage() {
                 value={selectedSort}
                 onChange={(e) => handleSortChange(e.target.value)}
                 className={styles.sortSelect}
-                aria-label="Trier par"
+                aria-label={t("shop.sortBy")}
               >
-                <option value="newest">Nouveautés</option>
-                <option value="price_asc">Prix croissant</option>
-                <option value="price_desc">Prix décroissant</option>
+                <option value="newest">{t("shop.sortRecent")}</option>
+                <option value="price_asc">{t("shop.sortPriceAsc")}</option>
+                <option value="price_desc">{t("shop.sortPriceDesc")}</option>
               </select>
             </div>
           </div>
@@ -511,11 +513,11 @@ export default function ShopPage() {
           {/* 2. Puces des filtres actifs supprimables */}
           {activeFiltersCount > 0 && (
             <div className={styles.activeFiltersRow}>
-              <span className={styles.activeFiltersLabel}>Filtres actifs :</span>
+              <span className={styles.activeFiltersLabel}>{t("shop.activeFilters")}</span>
               <div className={styles.chipsWrap}>
                 {selectedCategorySlug && (
                   <span className={styles.filterChip}>
-                    Catégorie : {currentCategory?.name || selectedCategorySlug}
+                    {t("shop.categoryLabel")} {currentCategory?.name || selectedCategorySlug}
                     <button
                       type="button"
                       onClick={() => handleCategorySelect("")}
@@ -528,7 +530,7 @@ export default function ShopPage() {
                 )}
                 {selectedSize && (
                   <span className={styles.filterChip}>
-                    Taille : {selectedSize}
+                    {t("shop.sizeLabel")} {selectedSize}
                     <button
                       type="button"
                       onClick={() => handleSizeClick(selectedSize)}
@@ -541,7 +543,7 @@ export default function ShopPage() {
                 )}
                 {debouncedSearch && (
                   <span className={styles.filterChip}>
-                    Recherche : « {debouncedSearch} »
+                    {t("shop.searchLabel")} « {debouncedSearch} »
                     <button
                       type="button"
                       onClick={() => setSearchInput("")}
@@ -557,7 +559,7 @@ export default function ShopPage() {
                   className={styles.clearAllBtn}
                   onClick={handleClearAll}
                 >
-                  Effacer tout
+                  {t("shop.clearFilters")}
                 </button>
               </div>
             </div>
@@ -583,22 +585,22 @@ export default function ShopPage() {
               message={error}
               action={
                 <Button variant="outline" size="sm" onClick={fetchInitialProducts}>
-                  Réessayer
+                  {t("common.retry")}
                 </Button>
               }
             />
           ) : products.length === 0 ? (
             <EmptyState
-              title="Aucun produit trouvé"
+              title={t("shop.noProducts")}
               description={
                 debouncedSearch
                   ? `Aucun résultat ne correspond à la recherche « ${debouncedSearch} ».`
-                  : "Aucun produit n'est disponible avec ces filtres."
+                  : t("shop.noProductsDesc")
               }
               action={
                 activeFiltersCount > 0 ? (
                   <Button variant="outline" size="sm" onClick={handleClearAll}>
-                    Effacer tous les filtres
+                    {t("shop.clearFilters")}
                   </Button>
                 ) : undefined
               }
@@ -665,10 +667,10 @@ export default function ShopPage() {
                     disabled={isLoadingMore}
                     className={styles.loadMoreBtn}
                   >
-                    {isLoadingMore ? "Chargement…" : "VOIR PLUS"}
+                    {isLoadingMore ? t("shop.loadingMore") : t("shop.loadMore")}
                   </Button>
                   <p className={styles.loadMoreCount}>
-                    {products.length} sur {totalCount} articles
+                    {t("shop.loadMoreCount", { current: products.length, total: totalCount })}
                   </p>
                 </div>
               )}
@@ -689,15 +691,15 @@ export default function ShopPage() {
             className={styles.drawerPanel}
             role="dialog"
             aria-modal="true"
-            aria-label="Filtres"
+            aria-label={t("shop.filterTitle")}
           >
             <div className={styles.drawerHeader}>
-              <h2 className={styles.drawerTitle}>Filtres</h2>
+              <h2 className={styles.drawerTitle}>{t("shop.filterTitle")}</h2>
               <button
                 type="button"
                 className={styles.drawerCloseBtn}
                 onClick={() => setMobileDrawerOpen(false)}
-                aria-label="Fermer les filtres"
+                aria-label={t("common.close")}
               >
                 <X size={20} />
               </button>
@@ -706,7 +708,7 @@ export default function ShopPage() {
             <div className={styles.drawerBody}>
               {/* Catégories dans le tiroir */}
               <section className={styles.filterSection}>
-                <h3 className={styles.filterSectionTitle}>Catégories</h3>
+                <h3 className={styles.filterSectionTitle}>{t("shop.categories")}</h3>
                 <div className={styles.filterList}>
                   <button
                     type="button"
@@ -718,7 +720,7 @@ export default function ShopPage() {
                       .join(" ")}
                     onClick={() => handleCategorySelect("")}
                   >
-                    <span>Tous</span>
+                    <span>{t("shop.allCategories")}</span>
                   </button>
                   {categories?.map((cat) => (
                     <button
@@ -743,7 +745,7 @@ export default function ShopPage() {
               {/* Tailles dans le tiroir (masqué pour Bijoux et Lunettes) */}
               {!isNoSizeCategory(selectedCategorySlug) && availableSizes.length > 0 && (
                 <section className={styles.filterSection}>
-                  <h3 className={styles.filterSectionTitle}>Tailles</h3>
+                  <h3 className={styles.filterSectionTitle}>{t("shop.size")}</h3>
                   <div className={styles.sizeGrid}>
                     {availableSizes.map((size) => {
                       const isActive = selectedSize === size;
@@ -776,7 +778,7 @@ export default function ShopPage() {
                   onClick={handleClearAll}
                   style={{ flex: 1 }}
                 >
-                  Effacer
+                  {t("shop.clearFilters")}
                 </Button>
               )}
               <Button
@@ -785,7 +787,7 @@ export default function ShopPage() {
                 onClick={() => setMobileDrawerOpen(false)}
                 style={{ flex: 1 }}
               >
-                Appliquer
+                {t("shop.apply")}
               </Button>
             </div>
           </div>

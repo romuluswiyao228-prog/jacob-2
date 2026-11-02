@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { fetchAdminRequiresMfa } from "@/lib/admin-mfa";
 import {
   AuthShell,
   AuthForm,
@@ -37,6 +38,13 @@ export default function AdminLoginPage() {
     }
 
     await refreshRole();
+
+    // MFA facultative : si l'administration ne l'exige pas, on entre directement.
+    const requiresMfa = await fetchAdminRequiresMfa();
+    if (!requiresMfa) {
+      navigate(from, { replace: true });
+      return;
+    }
 
     // Check if user has MFA factors
     const { data: factorsData } = await supabase.auth.mfa.listFactors();

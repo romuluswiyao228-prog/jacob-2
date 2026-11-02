@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ProductCard } from "@/components/ui";
 import { Section } from "@/components/home/Section";
 import { SEO } from "@/components/SEO";
@@ -39,6 +40,7 @@ function productToCardData(product: ProductWithImage): ProductCardData {
 }
 
 export default function HomePage() {
+  const { t } = useTranslation();
   const { data: settings } = useStoreSettings();
   const {
     data: categories,
@@ -152,14 +154,14 @@ export default function HomePage() {
           <div className={styles.heroFoot}>
             {intro ? <p className={styles.heroIntro}>{intro}</p> : <span />}
             <Link to="/boutique" className={styles.cta}>
-              Découvrir la collection
+              {t("home.ctaShop", "Découvrir la collection")}
             </Link>
           </div>
         </div>
       </section>
 
       <Section
-        title="Catégories"
+        title={t("home.categories", "Catégories")}
         isLoading={catLoading}
         error={catError}
         hasData={hasCategories}
@@ -179,7 +181,7 @@ export default function HomePage() {
       </Section>
 
       <Section
-        title="Nouveautés"
+        title={t("home.newArrivals", "Nouveautés")}
         tone="paper"
         moreHref="/boutique?tri=newest"
         isLoading={newLoading}
@@ -196,7 +198,7 @@ export default function HomePage() {
 
       {showBestSellerSection && (
         <Section
-          title={hasBestSellers ? "Meilleures ventes" : "Coups de cœur"}
+          title={hasBestSellers ? t("home.featured", "Meilleures ventes") : t("home.featured", "Coups de cœur")}
           moreHref="/boutique"
           isLoading={hasBestSellers ? bestLoading : featLoading}
           error={hasBestSellers ? bestError : featError}
@@ -212,7 +214,7 @@ export default function HomePage() {
       )}
 
       <Section
-        title="Promotions"
+        title={t("home.promotions", "Promotions")}
         tone="paper"
         moreHref="/boutique"
         isLoading={promoLoading}
@@ -228,7 +230,7 @@ export default function HomePage() {
       </Section>
 
       <Section
-        title="Collections"
+        title={t("home.collections", "Collections")}
         isLoading={colLoading}
         error={colError}
         hasData={hasCollections}
@@ -260,7 +262,7 @@ export default function HomePage() {
       {aboutText && (
         <section className={styles.brand}>
           <div className={styles.brandInner}>
-            <h2 className={styles.brandTitle}>La marque</h2>
+            <h2 className={styles.brandTitle}>{t("home.brand", "La marque")}</h2>
             <p className={styles.brandText}>{aboutText}</p>
           </div>
         </section>

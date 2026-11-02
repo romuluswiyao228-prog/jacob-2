@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -24,6 +25,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function SignUpPage() {
+  const { t } = useTranslation();
   const { signUp } = useAuth();
   const [serverError, setServerError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -49,8 +51,8 @@ export default function SignUpPage() {
   const breadcrumbEl = (
     <Breadcrumb
       items={[
-        { label: "Accueil", href: "/" },
-        { label: "Inscription" },
+        { label: t("common.home"), href: "/" },
+        { label: t("auth.createAccount") },
       ]}
     />
   );
@@ -66,34 +68,35 @@ export default function SignUpPage() {
           Un e-mail de confirmation vous a été envoyé. Cliquez sur le lien
           qu'il contient pour activer votre compte, puis connectez-vous.
         </AuthText>
-        <AuthButtonLink to="/connexion">Aller à la connexion</AuthButtonLink>
+        <AuthButtonLink to="/connexion">{t("auth.signInLink")}</AuthButtonLink>
       </AuthShell>
     );
   }
 
   return (
     <AuthShell
-      title="Créer un compte"
+      title={t("auth.registerTitle")}
       breadcrumb={breadcrumbEl}
-      subtitle="Rejoignez JACOB DE JESUS."
+      subtitle={t("auth.registerSubtitle")}
       pitch="Suivez vos commandes et gardez vos pièces préférées."
       footer={
         <p>
-          Déjà un compte ? <AuthLink to="/connexion">Se connecter</AuthLink>
+          {t("auth.haveAccount")}{" "}
+          <AuthLink to="/connexion">{t("auth.signInLink")}</AuthLink>
         </p>
       }
     >
       <AuthForm onSubmit={handleSubmit(onSubmit)} noValidate>
         {serverError && <AuthAlert>{serverError}</AuthAlert>}
         <AuthField
-          label="Nom complet"
+          label={t("auth.fullName", "Nom complet")}
           type="text"
           autoComplete="name"
           error={errors.fullName?.message}
           {...register("fullName")}
         />
         <AuthField
-          label="E-mail"
+          label={t("auth.email")}
           type="email"
           autoComplete="email"
           inputMode="email"
@@ -101,7 +104,7 @@ export default function SignUpPage() {
           {...register("email")}
         />
         <AuthField
-          label="Mot de passe"
+          label={t("auth.password")}
           type="password"
           autoComplete="new-password"
           hint="Minimum 10 caractères."
@@ -109,7 +112,7 @@ export default function SignUpPage() {
           {...register("password")}
         />
         <AuthSubmit loading={isSubmitting} loadingLabel="Création…">
-          Créer mon compte
+          {t("auth.registerBtn")}
         </AuthSubmit>
       </AuthForm>
     </AuthShell>

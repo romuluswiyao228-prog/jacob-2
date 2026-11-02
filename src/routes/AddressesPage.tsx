@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -55,6 +56,7 @@ const addressSchema = z.object({
 type AddressFormData = z.infer<typeof addressSchema>;
 
 export default function AddressesPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -252,13 +254,13 @@ export default function AddressesPage() {
 
   return (
     <AccountLayout
-      title="Mes adresses"
+      title={t("account.navAddresses")}
       subtitle={`${addresses.length} adresse${addresses.length > 1 ? "s" : ""} enregistrée${addresses.length > 1 ? "s" : ""}`}
     >
       <div className={styles.topActions}>
         <Button variant="primary" size="sm" onClick={openAddModal}>
           <Plus size={16} />
-          <span>Ajouter une adresse</span>
+          <span>{t("account.addAddress")}</span>
         </Button>
       </div>
 
@@ -289,18 +291,18 @@ export default function AddressesPage() {
           message={error}
           action={
             <Button variant="outline" size="sm" onClick={loadAddresses}>
-              Réessayer
+              {t("common.retry")}
             </Button>
           }
         />
       ) : addresses.length === 0 ? (
         <EmptyState
-          title="Aucune adresse enregistrée"
+          title={t("account.addressesTitle")}
           description="Enregistrez votre adresse de livraison pour accélérer la validation de vos commandes."
           action={
             <Button variant="primary" size="md" onClick={openAddModal}>
               <Plus size={16} />
-              <span>Ajouter une première adresse</span>
+              <span>{t("account.addAddress")}</span>
             </Button>
           }
         />
@@ -311,7 +313,7 @@ export default function AddressesPage() {
               <div className={styles.cardHeader}>
                 <span className={styles.cardLabel}>{addr.label || "Adresse"}</span>
                 {addr.is_default && (
-                  <span className={styles.defaultBadge}>Par défaut</span>
+                  <span className={styles.defaultBadge}>{t("account.defaultBadge")}</span>
                 )}
               </div>
 
@@ -335,14 +337,14 @@ export default function AddressesPage() {
                   className={styles.actionBtn}
                   onClick={() => openEditModal(addr)}
                 >
-                  Modifier
+                  {t("common.edit")}
                 </button>
                 <button
                   type="button"
                   className={[styles.actionBtn, styles.deleteBtn].join(" ")}
                   onClick={() => handleDelete(addr.id)}
                 >
-                  Supprimer
+                  {t("common.delete")}
                 </button>
                 {!addr.is_default && (
                   <button
@@ -350,7 +352,7 @@ export default function AddressesPage() {
                     className={[styles.actionBtn, styles.setDefaultBtn].join(" ")}
                     onClick={() => handleSetDefault(addr.id)}
                   >
-                    Définir par défaut
+                    {t("account.setDefault")}
                   </button>
                 )}
               </div>

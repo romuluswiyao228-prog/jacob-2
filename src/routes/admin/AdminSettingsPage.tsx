@@ -9,6 +9,8 @@ import {
   Share2,
   FileText,
   MapPin,
+  Coins,
+  RefreshCw,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { resizeImageToMax1600 } from "@/lib/admin-utils";
@@ -43,6 +45,7 @@ interface StoreSettingsData {
     tiktok?: string;
     twitter?: string;
   };
+  enabled_currencies?: string[];
 }
 
 const DEFAULT_SETTINGS: StoreSettingsData = {
@@ -72,6 +75,7 @@ const DEFAULT_SETTINGS: StoreSettingsData = {
     tiktok: "",
     twitter: "",
   },
+  enabled_currencies: ["XOF", "EUR", "USD"],
 };
 
 export default function AdminSettingsPage() {
@@ -79,6 +83,8 @@ export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<StoreSettingsData>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [refreshingRates, setRefreshingRates] = useState(false);
+  const [ratesLastUpdated, setRatesLastUpdated] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -125,7 +131,21 @@ export default function AdminSettingsPage() {
             social_links: data.social_links && typeof data.social_links === "object"
               ? data.social_links
               : {},
+            enabled_currencies: Array.isArray(data.enabled_currencies)
+              ? data.enabled_currencies
+              : ["XOF", "EUR", "USD"],
           });
+        }
+
+        const { data: ratesData } = await supabase
+          .from("exchange_rates")
+          .select("mis_a_jour")
+          .order("mis_a_jour", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (ratesData) {
+          setRatesLastUpdated(ratesData.mis_a_jour);
         }
       } catch (e: unknown) {
         console.error("Erreur de chargement des réglages", e);
@@ -153,6 +173,61 @@ export default function AdminSettingsPage() {
         [network]: value,
       },
     }));
+  };
+
+  const CURRENCY_OPTIONS = [
+    { code: "XOF", label: "Franc CFA (XOF)", note: "Devise officielle du magasin", locked: true },
+    { code: "EUR", label: "Euro (EUR)", note: "Parité fixe 1 EUR = 655,957 XOF" },
+    { code: "USD", label: "Dollar américain (USD)", note: "Taux indicatif" },
+    { code: "GBP", label: "Livre sterling (GBP)", note: "Taux indicatif" },
+    { code: "CAD", label: "Dollar canadien (CAD)", note: "Taux indicatif" },
+    { code: "JPY", label: "Yen japonais (JPY)", note: "Taux indicatif sans décimales" },
+    { code: "CHF", label: "Franc suisse (CHF)", note: "Taux indicatif" },
+    { code: "CNY", label: "Yuan chinois (CNY)", note: "Taux indicatif" },
+  ];
+
+  const toggleCurrency = (code: string) => {
+    if (code === "XOF") return;
+    setSettings((prev) => {
+      const current = prev.enabled_currencies || ["XOF", "EUR", "USD"];
+      const next = current.includes(code)
+        ? current.filter((c) => c !== code)
+        : [...current, code];
+      return { ...prev, enabled_currencies: next };
+    });
+  };
+
+  const handleRefreshRates = async () => {
+    try {
+      setRefreshingRates(true);
+      setError(null);
+
+      // Appel de l'Edge function refresh-exchange-rates
+      const { error: fnErr } = await supabase.functions.invoke("refresh-exchange-rates");
+      if (fnErr) {
+        console.warn("Edge function refresh-exchange-rates:", fnErr.message);
+      }
+
+      // Re-vérifier la table exchange_rates
+      const { data: ratesData, error: ratesErr } = await supabase
+        .from("exchange_rates")
+        .select("mis_a_jour")
+        .order("mis_a_jour", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (ratesErr) throw ratesErr;
+
+      const updated = ratesData?.mis_a_jour || new Date().toISOString();
+      setRatesLastUpdated(updated);
+      showToast("Taux de change actualisés avec succès", "success");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Erreur lors de l'actualisation des taux.";
+      setError(msg);
+      showToast(msg, "error");
+    } finally {
+      setRefreshingRates(false);
+    }
   };
 
   const handleUploadImage = async (
@@ -244,6 +319,7 @@ export default function AdminSettingsPage() {
         legal_mentions: settings.legal_mentions.trim() || null,
         returns_policy: settings.returns_policy.trim() || null,
         social_links: settings.social_links || {},
+        enabled_currencies: settings.enabled_currencies || ["XOF", "EUR", "USD"],
         updated_at: new Date().toISOString(),
       };
 
@@ -813,6 +889,118 @@ export default function AdminSettingsPage() {
                 className={`${styles.textarea} ${styles.textareaLarge}`}
                 placeholder="Conditions de retour sous 14 jours, état des articles et modalités de remboursement..."
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Section 6 : Devises & Taux de change */}
+        <div className={styles.sectionCard}>
+          <div className={styles.sectionHeader}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Coins size={18} color="var(--color-brand)" />
+              <h2 className={styles.sectionTitle}>Devises & Taux de Change</h2>
+            </div>
+            <p className={styles.sectionDesc}>
+              Devises activées pour les conversions indicatives (la boutique et la commande restent toujours en XOF).
+            </p>
+          </div>
+
+          <div className={styles.sectionBody}>
+            {/* Statut & Actualisation */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: "var(--space-3)",
+                padding: "var(--space-4)",
+                background: "var(--color-neutral-900)",
+                border: "1px solid var(--color-neutral-700)",
+                borderRadius: "var(--radius)",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: "var(--text-sm)", fontWeight: "bold", color: "var(--color-text-inverse)" }}>
+                  Dernière mise à jour des taux
+                </div>
+                <div style={{ fontSize: "var(--text-xs)", color: "var(--color-neutral-400)", marginTop: "2px" }}>
+                  {ratesLastUpdated
+                    ? new Date(ratesLastUpdated).toLocaleString("fr-FR", {
+                        dateStyle: "long",
+                        timeStyle: "short",
+                      })
+                    : "Aucun taux enregistré (EUR parité fixe par défaut)"}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className={styles.uploadBtn}
+                onClick={handleRefreshRates}
+                disabled={refreshingRates}
+                style={{ cursor: refreshingRates ? "wait" : "pointer" }}
+              >
+                <RefreshCw size={14} />
+                <span>{refreshingRates ? "Actualisation…" : "Actualiser les taux"}</span>
+              </button>
+            </div>
+
+            {/* Liste des devises avec checkboxes */}
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Devises proposées aux clients</label>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                  gap: "var(--space-3)",
+                  marginTop: "var(--space-2)",
+                }}
+              >
+                {CURRENCY_OPTIONS.map((opt) => {
+                  const isChecked = (
+                    settings.enabled_currencies || ["XOF", "EUR", "USD"]
+                  ).includes(opt.code);
+
+                  return (
+                    <label
+                      key={opt.code}
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: "var(--space-3)",
+                        padding: "var(--space-3)",
+                        background: "var(--color-neutral-900)",
+                        border: `1px solid ${isChecked ? "var(--color-brand)" : "var(--color-neutral-700)"}`,
+                        borderRadius: "var(--radius)",
+                        cursor: opt.locked ? "default" : "pointer",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        disabled={opt.locked}
+                        onChange={() => toggleCurrency(opt.code)}
+                        style={{ marginTop: "3px" }}
+                      />
+                      <div>
+                        <div
+                          style={{
+                            fontSize: "var(--text-sm)",
+                            fontWeight: "bold",
+                            color: isChecked ? "var(--color-brand)" : "var(--color-text-inverse)",
+                          }}
+                        >
+                          {opt.label}
+                        </div>
+                        <div style={{ fontSize: "var(--text-xs)", color: "var(--color-neutral-400)" }}>
+                          {opt.note}
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>

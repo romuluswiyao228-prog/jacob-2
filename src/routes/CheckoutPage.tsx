@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useCart } from "@/lib/cart-context";
+import { useCurrency } from "@/lib/currency-context";
 import { supabase } from "@/lib/supabase";
 import {
   Button,
@@ -108,9 +110,11 @@ interface AppliedPromo {
 }
 
 export default function CheckoutPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { items, subtotal, clearCart, updateQuantity, removeItem } = useCart();
+  const { currency, formatPrice } = useCurrency();
 
   // Zones & tarifs de livraison actifs
   const [shippingZones, setShippingZones] = useState<ShippingZone[]>([]);
@@ -517,27 +521,27 @@ export default function CheckoutPage() {
     return (
       <main className={styles.page}>
         <SEO
-          title="Commander"
+          title={t("checkout.pageTitle")}
           description="Votre panier est actuellement vide. Découvrez notre collection de streetwear contemporain."
         />
         <div className={styles.container}>
           <div className={styles.breadcrumbNav}>
             <Breadcrumb
               items={[
-                { label: "Accueil", href: "/" },
-                { label: "Panier", href: "/panier" },
-                { label: "Commande" },
+                { label: t("common.home"), href: "/" },
+                { label: t("cart.pageTitle"), href: "/panier" },
+                { label: t("checkout.pageTitle") },
               ]}
             />
           </div>
           <EmptyState
             icon={<ShoppingBag size={56} strokeWidth={1} />}
-            title="Votre panier est vide"
-            description="Ajoutez des articles à votre panier pour passer commande."
+            title={t("cart.emptyTitle")}
+            description={t("cart.emptyDesc")}
             action={
               <Link to="/boutique" style={{ textDecoration: "none" }}>
                 <Button variant="primary" size="lg">
-                  Voir la boutique
+                  {t("cart.goToShop")}
                 </Button>
               </Link>
             }
@@ -550,22 +554,22 @@ export default function CheckoutPage() {
   return (
     <main className={styles.page}>
       <SEO
-        title="Finaliser la commande"
+        title={t("checkout.pageTitle")}
         description="Renseignez vos coordonnées et choisissez votre mode de paiement pour valider votre commande sur JACOB DE JESUS."
       />
       <div className={styles.container}>
         <div className={styles.breadcrumbNav}>
           <Breadcrumb
             items={[
-              { label: "Accueil", href: "/" },
-              { label: "Panier", href: "/panier" },
-              { label: "Commande" },
+              { label: t("common.home"), href: "/" },
+              { label: t("cart.pageTitle"), href: "/panier" },
+              { label: t("checkout.pageTitle") },
             ]}
           />
         </div>
 
         <header className={styles.pageHeader}>
-          <h1 className={styles.title}>Finaliser la commande</h1>
+          <h1 className={styles.title}>{t("checkout.pageTitle")}</h1>
           <div className={styles.authBadge}>
             <span className={styles.authBadgeDot} />
             {user ? (
@@ -601,15 +605,14 @@ export default function CheckoutPage() {
               <section className={styles.card}>
                 <div className={styles.cardHeader}>
                   <h2 className={styles.cardTitle}>
-                    1. Coordonnées du destinataire
+                    1. {t("checkout.customerSection")}
                   </h2>
-                  <span className={styles.cardStep}>Informations client</span>
                 </div>
 
                 <div className={styles.row2}>
                   <div className={styles.fieldGroup}>
                     <Input
-                      label="Prénom *"
+                      label={`${t("checkout.firstName")} *`}
                       placeholder="Ex: Koffi"
                       error={errors.first_name?.message}
                       {...register("first_name")}
@@ -617,7 +620,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className={styles.fieldGroup}>
                     <Input
-                      label="Nom *"
+                      label={`${t("checkout.lastName")} *`}
                       placeholder="Ex: Mensah"
                       error={errors.last_name?.message}
                       {...register("last_name")}
@@ -628,7 +631,7 @@ export default function CheckoutPage() {
                 <div className={styles.row2}>
                   <div className={styles.fieldGroup}>
                     <Input
-                      label="Téléphone *"
+                      label={`${t("checkout.phone")} *`}
                       type="tel"
                       placeholder="+228 90 12 34 56"
                       hint="Pour être joint par le livreur"
@@ -638,7 +641,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className={styles.fieldGroup}>
                     <Input
-                      label="Adresse e-mail *"
+                      label={`${t("checkout.email")} *`}
                       type="email"
                       placeholder="exemple@domaine.com"
                       hint="Pour la confirmation et le suivi"
@@ -653,15 +656,14 @@ export default function CheckoutPage() {
               <section className={styles.card}>
                 <div className={styles.cardHeader}>
                   <h2 className={styles.cardTitle}>
-                    2. Adresse de livraison
+                    2. {t("checkout.shippingSection")}
                   </h2>
-                  <span className={styles.cardStep}>Destination</span>
                 </div>
 
                 <div className={styles.row2}>
                   <div className={styles.fieldGroup}>
                     <Input
-                      label="Pays *"
+                      label={`${t("checkout.country")} *`}
                       placeholder="Ex: Togo"
                       error={errors.country?.message}
                       {...register("country")}
@@ -669,7 +671,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className={styles.fieldGroup}>
                     <Input
-                      label="Ville *"
+                      label={`${t("checkout.city")} *`}
                       placeholder="Ex: Lomé"
                       error={errors.city?.message}
                       {...register("city")}
@@ -679,7 +681,7 @@ export default function CheckoutPage() {
 
                 <div className={styles.fieldGroup}>
                   <Input
-                    label="Adresse complète (rue, quartier, numéro) *"
+                    label={`${t("checkout.addressLine1")} *`}
                     placeholder="Ex: Quartier Tokoin, Rue des Palmiers, Porte 42"
                     error={errors.line1?.message}
                     {...register("line1")}
@@ -689,7 +691,7 @@ export default function CheckoutPage() {
                 <div className={styles.fieldGroup}>
                   <div className={styles.textareaWrapper}>
                     <label htmlFor="notes" className={styles.label}>
-                      Indications pour le livreur (facultatif)
+                      {t("checkout.deliveryNotes")}
                     </label>
                     <textarea
                       id="notes"
@@ -710,11 +712,10 @@ export default function CheckoutPage() {
                   <h2 className={styles.cardTitle}>
                     3. Mode de livraison
                   </h2>
-                  <span className={styles.cardStep}>Tarif calculé</span>
                 </div>
 
                 {loadingShipping ? (
-                  <p className={styles.hint}>Calcul des frais de livraison en cours…</p>
+                  <p className={styles.hint}>{t("common.loading")}</p>
                 ) : isShippingValid && matchedShipping ? (
                   <div className={styles.shippingCard}>
                     <Truck size={24} className={styles.shippingIcon} />
@@ -729,7 +730,7 @@ export default function CheckoutPage() {
                     </div>
                     <div className={styles.shippingPrice}>
                       {matchedShipping.price === 0
-                        ? "Gratuit"
+                        ? t("checkout.freeShipping")
                         : formatXOF(matchedShipping.price)}
                     </div>
                   </div>
@@ -755,9 +756,8 @@ export default function CheckoutPage() {
               <section className={styles.card}>
                 <div className={styles.cardHeader}>
                   <h2 className={styles.cardTitle}>
-                    4. Mode de paiement
+                    4. {t("checkout.paymentSection")}
                   </h2>
-                  <span className={styles.cardStep}>Unique méthode active</span>
                 </div>
 
                 <div className={styles.paymentCard}>
@@ -765,13 +765,12 @@ export default function CheckoutPage() {
                   <div className={styles.paymentInfo}>
                     <div className={styles.paymentTitleRow}>
                       <span className={styles.paymentTitle}>
-                        Paiement à la livraison (Cash on Delivery)
+                        {t("checkout.cashOnDelivery")}
                       </span>
                       <Badge variant="neutral">Actif</Badge>
                     </div>
                     <p className={styles.paymentDesc}>
-                      Réglez en espèces directement auprès du livreur lors de la remise en main propre de votre colis.
-                      Aucun débit en ligne n'est effectué aujourd'hui. Prévoyez l'appoint si possible.
+                      {t("checkout.cashOnDeliveryDesc")}
                     </p>
                   </div>
                 </div>
@@ -782,8 +781,8 @@ export default function CheckoutPage() {
             <aside className={styles.summaryCol}>
               <div className={styles.summaryCard}>
                 <div className={styles.summaryHeader}>
-                  <h2 className={styles.summaryTitle}>Récapitulatif</h2>
-                  <span className={styles.hint}>{items.length} article(s)</span>
+                  <h2 className={styles.summaryTitle}>{t("checkout.summarySection")}</h2>
+                  <span className={styles.hint}>{items.length} {items.length > 1 ? "articles" : "article"}</span>
                 </div>
 
                 {/* Liste des articles */}
@@ -804,9 +803,9 @@ export default function CheckoutPage() {
                           {item.product_name}
                         </div>
                         <div className={styles.itemMeta}>
-                          {item.size && <span>Taille : {item.size}</span>}
+                          {item.size && <span>{t("cart.sizeLabel")} {item.size}</span>}
                           {item.color && <span>· {item.color}</span>}
-                          <span>· Qté : {item.quantity}</span>
+                          <span>· {t("cart.qty")} : {item.quantity}</span>
                         </div>
                       </div>
                       <div className={styles.itemPrice}>
@@ -831,14 +830,14 @@ export default function CheckoutPage() {
                         onClick={handleRemovePromo}
                         className={styles.promoRemoveBtn}
                       >
-                        Retirer
+                        {t("cart.remove")}
                       </button>
                     </div>
                   ) : (
                     <div className={styles.promoForm}>
                       <input
                         type="text"
-                        placeholder="Code promo"
+                        placeholder={t("checkout.promoCode")}
                         value={promoInput}
                         onChange={(e) => setPromoInput(e.target.value)}
                         className={styles.textarea}
@@ -851,7 +850,7 @@ export default function CheckoutPage() {
                         disabled={!promoInput.trim() || loadingPromo}
                         onClick={handleApplyPromo}
                       >
-                        {loadingPromo ? "…" : "Appliquer"}
+                        {loadingPromo ? "…" : t("checkout.applyPromo")}
                       </Button>
                     </div>
                   )}
@@ -861,15 +860,15 @@ export default function CheckoutPage() {
                 {/* Totaux */}
                 <div className={styles.totalsBreakdown}>
                   <div className={styles.calcRow}>
-                    <span>Sous-total articles</span>
+                    <span>{t("checkout.itemsSubtotal")}</span>
                     <span className={styles.calcValue}>{formatXOF(subtotal)}</span>
                   </div>
 
                   <div className={styles.calcRow}>
-                    <span>Frais de livraison</span>
+                    <span>{t("checkout.shippingFee")}</span>
                     {isShippingValid && shippingFee !== null ? (
                       <span className={styles.calcValue}>
-                        {shippingFee === 0 ? "Gratuit" : formatXOF(shippingFee)}
+                        {shippingFee === 0 ? t("checkout.freeShipping") : formatXOF(shippingFee)}
                       </span>
                     ) : (
                       <span className={styles.unconfirmedText}>
@@ -880,7 +879,7 @@ export default function CheckoutPage() {
 
                   {appliedPromo && (
                     <div className={styles.calcRow}>
-                      <span>Remise promo ({appliedPromo.code})</span>
+                      <span>{t("checkout.discount")} ({appliedPromo.code})</span>
                       <span className={styles.discountValue}>
                         -{formatXOF(appliedPromo.discount_amount)}
                       </span>
@@ -890,13 +889,25 @@ export default function CheckoutPage() {
                   <div className={styles.divider} />
 
                   <div className={styles.totalRow}>
-                    <span className={styles.totalLabel}>Total à payer</span>
-                    <span className={styles.totalAmount}>
-                      {calculatedTotal !== null
-                        ? formatXOF(calculatedTotal)
-                        : formatXOF(subtotal)}
-                    </span>
+                    <span className={styles.totalLabel}>{t("checkout.total")}</span>
+                    <div style={{ textAlign: "end" }}>
+                      <span className={styles.totalAmount}>
+                        {calculatedTotal !== null
+                          ? formatXOF(calculatedTotal)
+                          : formatXOF(subtotal)}
+                      </span>
+                      {currency !== "XOF" && (
+                        <div style={{ fontSize: "var(--text-sm)", color: "var(--color-neutral-600)", marginTop: "2px" }}>
+                          {formatPrice(calculatedTotal !== null ? calculatedTotal : subtotal)}
+                        </div>
+                      )}
+                    </div>
                   </div>
+                  {currency !== "XOF" && (
+                    <p style={{ fontSize: "var(--text-xs)", color: "var(--color-neutral-500)", marginTop: "var(--space-2)", fontStyle: "italic", textAlign: "end" }}>
+                      Vous serez facturé en XOF ; la conversion est indicative.
+                    </p>
+                  )}
                 </div>
 
                 {/* Bouton de confirmation */}
@@ -909,10 +920,10 @@ export default function CheckoutPage() {
                   isLoading={isSubmitting}
                 >
                   {isSubmitting
-                    ? "Confirmation en cours…"
+                    ? t("checkout.submitting")
                     : !isShippingValid
                     ? "Livraison indisponible"
-                    : "Confirmer la commande"}
+                    : t("checkout.submitOrder")}
                 </Button>
 
                 <div className={styles.guarantees}>

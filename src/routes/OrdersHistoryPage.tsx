@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ChevronRight, ShoppingBag } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -52,9 +53,9 @@ export function formatXOF(amount: number): string {
   return amount.toLocaleString("fr-FR") + "\u00a0XOF";
 }
 
-export function formatDate(isoString: string): string {
+export function formatDate(isoString: string, lang = "fr"): string {
   const d = new Date(isoString);
-  return d.toLocaleDateString("fr-FR", {
+  return d.toLocaleDateString(lang, {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -62,6 +63,7 @@ export function formatDate(isoString: string): string {
 }
 
 export default function OrdersHistoryPage() {
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [orders, setOrders] = useState<OrderItemSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -95,7 +97,7 @@ export default function OrdersHistoryPage() {
 
   return (
     <AccountLayout
-      title="Mes commandes"
+      title={t("account.ordersTitle")}
       subtitle={`${orders.length} commande${orders.length > 1 ? "s" : ""} passée${orders.length > 1 ? "s" : ""}`}
     >
       {isLoading ? (
@@ -126,19 +128,19 @@ export default function OrdersHistoryPage() {
           message={error}
           action={
             <Button variant="outline" size="sm" onClick={loadOrders}>
-              Réessayer
+              {t("common.retry")}
             </Button>
           }
         />
       ) : orders.length === 0 ? (
         <EmptyState
           icon={<ShoppingBag size={48} strokeWidth={1} />}
-          title="Vous n'avez pas encore passé de commande"
+          title={t("account.noOrders")}
           description="Retrouvez ici toutes vos pièces commandées et leur avancement."
           action={
             <Link to="/boutique" style={{ textDecoration: "none" }}>
               <Button variant="primary" size="md">
-                Découvrir la boutique
+                {t("cart.goToShop")}
               </Button>
             </Link>
           }
@@ -164,7 +166,7 @@ export default function OrdersHistoryPage() {
                     </span>
                   </div>
                   <span className={styles.orderDate}>
-                    Passée le {formatDate(order.created_at)}
+                    Passée le {formatDate(order.created_at, i18n.language)}
                   </span>
                 </div>
 
@@ -176,7 +178,7 @@ export default function OrdersHistoryPage() {
                     to={`/compte/commandes/${order.id}`}
                     className={styles.detailsLink}
                   >
-                    <span>Détails</span>
+                    <span>{t("account.viewDetails")}</span>
                     <ChevronRight size={14} />
                   </Link>
                 </div>

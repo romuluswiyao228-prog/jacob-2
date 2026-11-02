@@ -1,10 +1,13 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth-context";
 import { useCart } from "@/lib/cart-context";
 import { useCategories } from "@/lib/hooks";
 import { Drawer } from "@/components/ui";
 import { Menu, Search, Heart, ShoppingBag, User, ChevronDown } from "lucide-react";
+import { LanguageButton } from "@/components/i18n/LanguageButton";
+import { CurrencyButton } from "@/components/currency/CurrencyButton";
 import styles from "./Header.module.css";
 
 interface HeaderProps {
@@ -12,6 +15,7 @@ interface HeaderProps {
 }
 
 export function Header({ storeName }: HeaderProps) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { totalItems, openCart } = useCart();
   const { data: categories } = useCategories();
@@ -41,7 +45,7 @@ export function Header({ storeName }: HeaderProps) {
           <button
             className={styles.menuBtn}
             onClick={() => setMobileOpen(true)}
-            aria-label="Menu"
+            aria-label={t("header.menuAria", "Menu")}
           >
             <Menu size={20} strokeWidth={1.5} />
           </button>
@@ -52,7 +56,7 @@ export function Header({ storeName }: HeaderProps) {
           </Link>
 
           {/* Desktop nav */}
-          <nav className={styles.nav} aria-label="Catégories">
+          <nav className={styles.nav} aria-label={t("header.categories", "Catégories")}>
             {mainCategories.map((cat) => (
               <Link
                 key={cat.id}
@@ -72,7 +76,7 @@ export function Header({ storeName }: HeaderProps) {
                   aria-expanded={moreOpen}
                   aria-haspopup="true"
                 >
-                  <span>Plus</span>
+                  <span>{t("header.more", "Plus")}</span>
                   <ChevronDown size={14} />
                 </button>
                 {moreOpen && (
@@ -95,17 +99,20 @@ export function Header({ storeName }: HeaderProps) {
 
           {/* Actions */}
           <div className={styles.actions}>
+            <LanguageButton variant="header" />
+            <CurrencyButton variant="header" />
+
             <button
               className={styles.iconBtn}
               onClick={() => setSearchOpen((s) => !s)}
-              aria-label="Recherche"
+              aria-label={t("header.searchAria", "Recherche")}
             >
               <Search size={18} strokeWidth={1.5} />
             </button>
             <Link
               to="/favoris"
               className={styles.iconBtn}
-              aria-label="Favoris"
+              aria-label={t("header.favoritesAria", "Favoris")}
             >
               <Heart size={18} strokeWidth={1.5} />
             </Link>
@@ -113,7 +120,10 @@ export function Header({ storeName }: HeaderProps) {
               type="button"
               onClick={openCart}
               className={styles.iconBtn}
-              aria-label={`Panier (${totalItems} article${totalItems > 1 ? "s" : ""})`}
+              aria-label={t("header.cartAria", {
+                count: totalItems,
+                defaultValue: `Panier (${totalItems} article${totalItems > 1 ? "s" : ""})`,
+              })}
             >
               <ShoppingBag size={18} strokeWidth={1.5} />
               {totalItems > 0 && <span className={styles.cartCount}>{totalItems}</span>}
@@ -121,7 +131,11 @@ export function Header({ storeName }: HeaderProps) {
             <Link
               to={user ? "/compte" : "/connexion"}
               className={styles.iconBtn}
-              aria-label={user ? "Mon compte" : "Connexion"}
+              aria-label={
+                user
+                  ? t("header.accountAria", "Mon compte")
+                  : t("header.loginAria", "Connexion")
+              }
             >
               <User size={18} strokeWidth={1.5} />
             </Link>
@@ -136,12 +150,12 @@ export function Header({ storeName }: HeaderProps) {
                 type="search"
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
-                placeholder="Rechercher un produit…"
+                placeholder={t("header.searchPlaceholder", "Rechercher un produit…")}
                 className={styles.searchInput}
                 autoFocus
               />
               <button type="submit" className={styles.searchSubmit}>
-                Rechercher
+                {t("header.searchSubmit", "Rechercher")}
               </button>
             </form>
           </div>
@@ -152,7 +166,7 @@ export function Header({ storeName }: HeaderProps) {
       <Drawer
         open={mobileOpen}
         onClose={() => setMobileOpen(false)}
-        title="Menu"
+        title={t("common.menu", "Menu")}
         side="left"
       >
         <nav className={styles.mobileNav}>
@@ -171,8 +185,13 @@ export function Header({ storeName }: HeaderProps) {
             className={styles.mobileLink}
             onClick={() => setMobileOpen(false)}
           >
-            {user ? "Mon compte" : "Connexion"}
+            {user
+              ? t("header.accountAria", "Mon compte")
+              : t("header.loginAria", "Connexion")}
           </Link>
+          <div style={{ marginTop: "var(--space-4)" }}>
+            <LanguageButton variant="header" />
+          </div>
         </nav>
       </Drawer>
     </>

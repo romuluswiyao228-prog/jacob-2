@@ -1,15 +1,15 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Trash2, Plus, Minus, ShoppingBag, AlertTriangle } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
+import { useCurrency } from "@/lib/currency-context";
 import { Button, Skeleton, EmptyState, ErrorState, Breadcrumb } from "@/components/ui";
 import { SEO } from "@/components/SEO";
 import styles from "./CartPage.module.css";
 
-function formatXOF(amount: number): string {
-  return amount.toLocaleString("fr-FR") + "\u00a0XOF";
-}
-
 export default function CartPage() {
+  const { t } = useTranslation();
+  const { formatPrice } = useCurrency();
   const {
     items,
     subtotal,
@@ -26,22 +26,22 @@ export default function CartPage() {
   return (
     <main className={styles.page}>
       <SEO
-        title="Mon Panier"
+        title={t("cart.pageTitle")}
         description="Consultez et modifiez les articles de votre panier d'achat JACOB DE JESUS."
       />
       <div className={styles.container}>
         <Breadcrumb
           items={[
-            { label: "Accueil", href: "/" },
-            { label: "Boutique", href: "/boutique" },
-            { label: "Panier" },
+            { label: t("common.home"), href: "/" },
+            { label: t("common.shop"), href: "/boutique" },
+            { label: t("cart.pageTitle") },
           ]}
           style={{ marginBottom: "var(--space-4)" }}
         />
         <header className={styles.pageHeader}>
-          <h1 className={styles.title}>Mon Panier</h1>
+          <h1 className={styles.title}>{t("cart.pageTitle")}</h1>
           <span className={styles.count}>
-            {items.reduce((a, i) => a + i.quantity, 0)} article(s)
+            {t("cart.item", { count: items.reduce((a, i) => a + i.quantity, 0) })}
           </span>
         </header>
 
@@ -49,9 +49,9 @@ export default function CartPage() {
           <div className={styles.alertBanner}>
             <AlertTriangle size={18} />
             <span>
-              Certains articles ont ete mis a jour (prix ou stock).{" "}
+              {t("cart.alertChange")}{" "}
               <button className={styles.alertDismiss} onClick={clearAlerts}>
-                Compris
+                {t("cart.understood")}
               </button>
             </span>
           </div>
@@ -74,23 +74,23 @@ export default function CartPage() {
           </div>
         ) : error ? (
           <ErrorState
-            title="Impossible de charger le panier"
+            title={t("cart.loadError")}
             message={error}
             action={
               <Button variant="outline" size="sm" onClick={() => void retry()}>
-                Reessayer
+                {t("common.retry")}
               </Button>
             }
           />
         ) : items.length === 0 ? (
           <EmptyState
             icon={<ShoppingBag size={48} strokeWidth={1} />}
-            title="Votre panier est vide"
-            description="Parcourez notre catalogue pour trouver vos articles."
+            title={t("cart.emptyTitle")}
+            description={t("cart.emptyDesc")}
             action={
               <Link to="/boutique">
                 <Button variant="primary" size="md">
-                  Voir le catalogue
+                  {t("cart.goToShop")}
                 </Button>
               </Link>
             }
@@ -141,14 +141,14 @@ export default function CartPage() {
                           </span>
                         )}
                         {item.alert === "removed" && (
-                          <span className={styles.alertTag}>Produit retire</span>
+                          <span className={styles.alertTag}>{t("cart.itemRemoved")}</span>
                         )}
                         {item.alert === "out_of_stock" && (
-                          <span className={styles.alertTag}>Epuise</span>
+                          <span className={styles.alertTag}>{t("product.soldOut")}</span>
                         )}
                         {isChanged && item.new_price != null && (
                           <span className={styles.alertTagPrice}>
-                            Nouveau prix : {formatXOF(item.new_price)}
+                            {t("cart.priceUpdated", { price: formatPrice(item.new_price) })}
                           </span>
                         )}
 
@@ -177,16 +177,16 @@ export default function CartPage() {
                           <button
                             className={styles.removeBtn}
                             onClick={() => void removeItem(item.id)}
-                            aria-label="Retirer du panier"
+                            aria-label={t("cart.remove")}
                           >
                             <Trash2 size={14} />
-                            <span>Retirer</span>
+                            <span>{t("cart.remove")}</span>
                           </button>
                         </div>
                       </div>
 
                       <div className={styles.lineTotal}>
-                        {formatXOF(effectivePrice * item.quantity)}
+                        {formatPrice(effectivePrice * item.quantity)}
                       </div>
                     </li>
                   );
@@ -197,33 +197,33 @@ export default function CartPage() {
             {/* Recapitulatif */}
             <aside className={styles.summary}>
               <div className={styles.summaryCard}>
-                <h2 className={styles.summaryTitle}>Recapitulatif</h2>
+                <h2 className={styles.summaryTitle}>{t("checkout.summarySection")}</h2>
 
                 <div className={styles.summaryRow}>
-                  <span>Sous-total</span>
-                  <span className={styles.mono}>{formatXOF(subtotal)}</span>
+                  <span>{t("cart.subtotal")}</span>
+                  <span className={styles.mono}>{formatPrice(subtotal)}</span>
                 </div>
                 <div className={styles.summaryRow}>
-                  <span>Livraison</span>
-                  <span className={styles.muted}>Calculee a l&apos;etape suivante</span>
+                  <span>{t("checkout.shippingFee")}</span>
+                  <span className={styles.muted}>{t("cart.shippingCalculated")}</span>
                 </div>
                 <div className={styles.summaryDivider} />
                 <div className={[styles.summaryRow, styles.summaryTotal].join(" ")}>
-                  <span>Total estimatif</span>
-                  <span className={styles.mono}>{formatXOF(subtotal)}</span>
+                  <span>{t("cart.estimatedTotal")}</span>
+                  <span className={styles.mono}>{formatPrice(subtotal)}</span>
                 </div>
                 <p className={styles.summaryNote}>
-                  Le montant final sera calcule au moment de la commande.
+                  {t("cart.finalAmountNote")}
                 </p>
 
                 <Link to="/commande" style={{ display: "block", textDecoration: "none" }}>
                   <Button variant="primary" size="lg" style={{ width: "100%" }}>
-                    Passer la commande
+                    {t("cart.checkout")}
                   </Button>
                 </Link>
                 <Link to="/boutique" style={{ display: "block", textDecoration: "none", marginTop: "var(--space-2)" }}>
                   <Button variant="ghost" size="md" style={{ width: "100%" }}>
-                    Continuer mes achats
+                    {t("cart.continueShopping")}
                   </Button>
                 </Link>
               </div>

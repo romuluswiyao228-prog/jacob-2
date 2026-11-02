@@ -2,6 +2,7 @@ import { lazy, Suspense, type ComponentType } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/lib/auth-context";
 import { CartProvider } from "@/lib/cart-context";
+import { CurrencyProvider } from "@/lib/currency-context";
 import { RequireAuth } from "@/components/RequireAuth";
 import { RequireAdmin } from "@/components/RequireAdmin";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -71,12 +72,13 @@ if (import.meta.env.DEV) {
 export default function App() {
   return (
     <AuthProvider>
-      <CartProvider>
-        <ToastProvider>
-          <BrowserRouter>
-            <ErrorBoundary>
-              <Layout>
-                <Suspense fallback={<PageFallback />}>
+      <CurrencyProvider>
+        <CartProvider>
+          <ToastProvider>
+            <BrowserRouter>
+              <ErrorBoundary>
+                <Layout>
+                  <Suspense fallback={<PageFallback />}>
                   <Routes>
                     {/* Home */}
                     <Route path="/" element={<HomePage />} />
@@ -193,6 +195,7 @@ export default function App() {
           </BrowserRouter>
         </ToastProvider>
       </CartProvider>
-    </AuthProvider>
+    </CurrencyProvider>
+  </AuthProvider>
   );
 }

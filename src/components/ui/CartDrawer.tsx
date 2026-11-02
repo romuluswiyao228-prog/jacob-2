@@ -1,14 +1,14 @@
-﻿import { Link } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Trash2, Plus, Minus, ShoppingBag, AlertTriangle } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
+import { useCurrency } from "@/lib/currency-context";
 import { Drawer, Button, Skeleton, EmptyState, ErrorState } from "@/components/ui";
 import styles from "./CartDrawer.module.css";
 
-function formatXOF(amount: number): string {
-  return amount.toLocaleString("fr-FR") + "\u00a0XOF";
-}
-
 export function CartDrawer() {
+  const { t } = useTranslation();
+  const { formatPrice } = useCurrency();
   const {
     items,
     subtotal,
@@ -25,16 +25,16 @@ export function CartDrawer() {
   const hasAlerts = items.some((i) => i.alert);
 
   return (
-    <Drawer open={isOpen} onClose={closeCart} title="Mon Sac" side="right">
+    <Drawer open={isOpen} onClose={closeCart} title={t("cart.drawerTitle", "Votre Sac")} side="right">
       <div className={styles.inner}>
         {/* Alertes de revalidation */}
         {hasAlerts && (
           <div className={styles.alertBanner}>
             <AlertTriangle size={16} />
             <span>
-              Certains articles ont change de prix ou sont epuises.{" "}
+              {t("cart.alertChange")}{" "}
               <button className={styles.alertDismiss} onClick={clearAlerts}>
-                Compris
+                {t("cart.understood")}
               </button>
             </span>
           </div>
@@ -57,23 +57,23 @@ export function CartDrawer() {
             </div>
           ) : error ? (
             <ErrorState
-              title="Impossible de charger le panier"
+              title={t("cart.loadError")}
               message={error}
               action={
                 <Button variant="outline" size="sm" onClick={() => void retry()}>
-                  Reessayer
+                  {t("common.retry")}
                 </Button>
               }
             />
           ) : items.length === 0 ? (
             <EmptyState
               icon={<ShoppingBag size={40} strokeWidth={1} />}
-              title="Votre sac est vide"
-              description="Ajoutez des articles depuis le catalogue."
+              title={t("cart.emptyTitle")}
+              description={t("cart.emptyDesc")}
               action={
                 <Link to="/boutique" onClick={closeCart}>
                   <Button variant="primary" size="md">
-                    Voir le catalogue
+                    {t("cart.goToShop")}
                   </Button>
                 </Link>
               }
@@ -109,19 +109,19 @@ export function CartDrawer() {
                       )}
 
                       {item.alert === "removed" && (
-                        <span className={styles.alertTag}>Produit retire</span>
+                        <span className={styles.alertTag}>{t("cart.itemRemoved")}</span>
                       )}
                       {item.alert === "out_of_stock" && (
-                        <span className={styles.alertTag}>Epuise</span>
+                        <span className={styles.alertTag}>{t("product.soldOut")}</span>
                       )}
                       {isChanged && item.new_price != null && (
                         <span className={styles.alertTagPrice}>
-                          Prix mis a jour : {formatXOF(item.new_price)}
+                          {t("cart.priceUpdated", { price: formatPrice(item.new_price) })}
                         </span>
                       )}
 
                       <div className={styles.priceRow}>
-                        <span className={styles.price}>{formatXOF(effectivePrice * item.quantity)}</span>
+                        <span className={styles.price}>{formatPrice(effectivePrice * item.quantity)}</span>
                         {!isBad && (
                           <div className={styles.qty}>
                             <button
@@ -149,7 +149,7 @@ export function CartDrawer() {
                     <button
                       className={styles.removeBtn}
                       onClick={() => void removeItem(item.id)}
-                      aria-label="Retirer"
+                      aria-label={t("cart.remove")}
                     >
                       <Trash2 size={15} />
                     </button>
@@ -164,20 +164,20 @@ export function CartDrawer() {
         {items.length > 0 && !isLoading && !error && (
           <div className={styles.footer}>
             <div className={styles.totalRow}>
-              <span className={styles.totalLabel}>Sous-total</span>
-              <span className={styles.totalAmount}>{formatXOF(subtotal)}</span>
+              <span className={styles.totalLabel}>{t("cart.subtotal")}</span>
+              <span className={styles.totalAmount}>{formatPrice(subtotal)}</span>
             </div>
             <p className={styles.shippingNote}>
-              Frais de livraison calcules a l&apos;etape suivante
+              {t("cart.shippingCalculated")}
             </p>
             <Link to="/panier" onClick={closeCart} className={styles.viewCartLink}>
               <Button variant="outline" size="lg" style={{ width: "100%", marginBottom: "var(--space-2)" }}>
-                Voir le panier
+                {t("cart.viewCart")}
               </Button>
             </Link>
             <Link to="/commande" onClick={closeCart} className={styles.checkoutLink}>
               <Button variant="primary" size="lg" style={{ width: "100%" }}>
-                Commander
+                {t("cart.checkout")}
               </Button>
             </Link>
           </div>

@@ -1,7 +1,10 @@
 import type { CSSProperties } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import type { PublicStoreSettings } from "@/lib/db-types";
 import { wordmarkSize } from "@/lib/wordmark";
+import { LanguageButton } from "@/components/i18n/LanguageButton";
+import { CurrencyButton } from "@/components/currency/CurrencyButton";
 import styles from "./Footer.module.css";
 
 interface FooterProps {
@@ -9,6 +12,7 @@ interface FooterProps {
 }
 
 export function Footer({ settings }: FooterProps) {
+  const { t } = useTranslation();
   const storeName = settings?.store_name?.trim() || "JACOB DE JESUS";
   const description = settings?.description?.trim() ?? "";
   const email = settings?.email?.trim() ?? "";
@@ -34,48 +38,48 @@ export function Footer({ settings }: FooterProps) {
             {description && <p className={styles.description}>{description}</p>}
           </div>
 
-          <nav className={styles.col} aria-label="Boutique">
-            <h3 className={styles.heading}>Boutique</h3>
+          <nav className={styles.col} aria-label={t("footer.shop", "Boutique")}>
+            <h3 className={styles.heading}>{t("footer.shop", "Boutique")}</h3>
             <Link to="/boutique" className={styles.link}>
-              Toute la collection
+              {t("footer.allCollection", "Toute la collection")}
             </Link>
             <Link to="/notre-boutique" className={styles.link}>
-              Notre boutique
+              {t("footer.ourStore", "Notre boutique")}
             </Link>
             <Link to="/favoris" className={styles.link}>
-              Favoris
+              {t("footer.favorites", "Favoris")}
             </Link>
             <Link to="/panier" className={styles.link}>
-              Panier
+              {t("footer.cart", "Panier")}
             </Link>
             <Link to="/compte" className={styles.link}>
-              Mon compte
+              {t("footer.myAccount", "Mon compte")}
             </Link>
           </nav>
 
-          <nav className={styles.col} aria-label="Informations légales">
-            <h3 className={styles.heading}>Légal & Service</h3>
+          <nav className={styles.col} aria-label={t("footer.legalAndService", "Légal & Service")}>
+            <h3 className={styles.heading}>{t("footer.legalAndService", "Légal & Service")}</h3>
             <Link to="/conditions-generales" className={styles.link}>
-              Conditions générales
+              {t("footer.cgv", "Conditions générales")}
             </Link>
             <Link to="/confidentialite" className={styles.link}>
-              Confidentialité
+              {t("footer.privacy", "Confidentialité")}
             </Link>
             <Link to="/mentions-legales" className={styles.link}>
-              Mentions légales
+              {t("footer.legalNotice", "Mentions légales")}
             </Link>
             <Link to="/retours" className={styles.link}>
-              Retours & Échanges
+              {t("footer.returns", "Retours & Échanges")}
             </Link>
             <Link to="/suivi" className={styles.link}>
-              Suivi de commande
+              {t("footer.tracking", "Suivi de commande")}
             </Link>
           </nav>
 
           <div className={styles.col}>
-            <h3 className={styles.heading}>Contact</h3>
+            <h3 className={styles.heading}>{t("footer.contact", "Contact")}</h3>
             <Link to="/contact" className={styles.link}>
-              Formulaire de contact
+              {t("footer.contactForm", "Formulaire de contact")}
             </Link>
             {email && (
               <a href={`mailto:${email}`} className={styles.link}>
@@ -92,7 +96,7 @@ export function Footer({ settings }: FooterProps) {
 
           {socialEntries.length > 0 && (
             <div className={styles.col}>
-              <h3 className={styles.heading}>Suivez-nous</h3>
+              <h3 className={styles.heading}>{t("footer.followUs", "Suivez-nous")}</h3>
               {socialEntries.map(([platform, url]) => (
                 <a
                   key={platform}
@@ -111,9 +115,16 @@ export function Footer({ settings }: FooterProps) {
         <p className={styles.wordmark} style={wordmarkStyle} aria-hidden="true">
           {storeName}
         </p>
-        <p className={styles.legal}>
-          © {new Date().getFullYear()} {storeName}
-        </p>
+
+        <div className={styles.bottomRow}>
+          <p className={styles.legal}>
+            © {new Date().getFullYear()} {storeName}. {t("footer.allRightsReserved", "Tous droits réservés.")}
+          </p>
+          <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center" }}>
+            <LanguageButton variant="footer" />
+            <CurrencyButton variant="footer" />
+          </div>
+        </div>
       </div>
     </footer>
   );

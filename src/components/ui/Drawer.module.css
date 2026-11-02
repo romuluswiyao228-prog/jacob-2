@@ -19,13 +19,13 @@
 }
 
 .right {
-  right: 0;
-  border-left: var(--border-width) solid var(--color-border);
+  inset-inline-end: 0;
+  border-inline-start: var(--border-width) solid var(--color-border);
 }
 
 .left {
-  left: 0;
-  border-right: var(--border-width) solid var(--color-border);
+  inset-inline-start: 0;
+  border-inline-end: var(--border-width) solid var(--color-border);
 }
 
 .header {

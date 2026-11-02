@@ -8,6 +8,7 @@ import {
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { aalFromToken } from "@/lib/aal";
 import type { AppRole } from "@/lib/types";
 
 interface AuthContextValue {
@@ -35,9 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [role, setRole] = useState<AppRole | null>(null);
 
-  const aalLevel = (session?.user?.user_metadata as Record<string, unknown> | undefined)?.aal as string | null
-    ?? (session?.user as Record<string, unknown> | undefined)?.aal as string | null
-    ?? null;
+  const aalLevel = aalFromToken(session?.access_token);
   const isAdmin = role === "owner";
 
   const fetchRole = useCallback(async (uid: string) => {

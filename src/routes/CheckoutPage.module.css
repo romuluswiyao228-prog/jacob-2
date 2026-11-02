@@ -302,7 +302,7 @@
   margin-bottom: var(--space-5);
   max-height: 260px;
   overflow-y: auto;
-  padding-right: var(--space-1);
+  padding-inline-end: var(--space-1);
 }
 
 .itemRow {

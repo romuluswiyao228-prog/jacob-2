@@ -1,5 +1,6 @@
 import { type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { User, MapPin, Package, Heart, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Breadcrumb } from "@/components/ui";
@@ -19,6 +20,7 @@ export function AccountLayout({
   breadcrumbItems,
   children,
 }: AccountLayoutProps) {
+  const { t } = useTranslation();
   const { user, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -29,15 +31,15 @@ export function AccountLayout({
   };
 
   const navItems = [
-    { label: "Profil", href: "/compte", icon: User, exact: true },
-    { label: "Adresses", href: "/compte/adresses", icon: MapPin },
-    { label: "Commandes", href: "/compte/commandes", icon: Package },
-    { label: "Favoris", href: "/favoris", icon: Heart },
+    { label: t("account.navProfile"), href: "/compte", icon: User, exact: true },
+    { label: t("account.navAddresses"), href: "/compte/adresses", icon: MapPin },
+    { label: t("account.navOrders"), href: "/compte/commandes", icon: Package },
+    { label: t("account.navFavorites"), href: "/favoris", icon: Heart },
   ];
 
   const defaultBreadcrumbs = [
-    { label: "Accueil", href: "/" },
-    { label: "Mon compte", href: "/compte" },
+    { label: t("common.home"), href: "/" },
+    { label: t("account.title"), href: "/compte" },
     ...(title !== "Mon profil" ? [{ label: title }] : []),
   ];
 
@@ -90,10 +92,10 @@ export function AccountLayout({
           type="button"
           onClick={handleLogout}
           className={styles.logoutBtn}
-          title="Se déconnecter"
+          title={t("account.logout")}
         >
           <LogOut size={14} />
-          <span>Déconnexion</span>
+          <span>{t("account.logout")}</span>
         </button>
       </nav>
 

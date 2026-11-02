@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Heart, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { useCart } from "@/lib/cart-context";
+import { useCurrency } from "@/lib/currency-context";
 import {
   Button,
   Skeleton,
@@ -28,10 +30,12 @@ interface ProductWithSecondary extends ProductWithImage {
 }
 
 export default function ProductDetailPage() {
+  const { t } = useTranslation();
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { addItem, openCart } = useCart();
+  const { formatPrice } = useCurrency();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [images, setImages] = useState<ProductImage[]>([]);
@@ -49,11 +53,14 @@ export default function ProductDetailPage() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [isBuyingNow, setIsBuyingNow] = useState(false);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const sizeSectionRef = useRef<HTMLDivElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
 
   const loadProduct = useCallback(async () => {
     if (!slug) return;
@@ -265,56 +272,134 @@ export default function ProductDetailPage() {
     });
   }, [variants, isOnlyUniqueSize, selectedSize, selectedColor]);
 
-  // Validation: whether a valid in-stock variant is chosen
-  const isSelectionComplete = useMemo(() => {
+  // Disparition du message d'erreur dès que la sélection change
+  useEffect(() => {
+    setSelectionError(null);
+  }, [selectedSize, selectedColor]);
+
+  // Défilement automatique vers le message d'erreur lorsqu'il apparaît
+  useEffect(() => {
+    if (selectionError && errorRef.current) {
+      errorRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [selectionError]);
+
+  // Validation de la sélection avec message explicite
+  const validateSelection = ():
+    | { valid: true; variant: ProductVariant }
+    | { valid: false; message: string } => {
     const needsSize = !isOnlyUniqueSize && distinctSizes.length > 0;
     const needsColor = distinctColors.length > 0;
 
-    if (needsSize && !selectedSize) return false;
-    if (needsColor && !selectedColor) return false;
+    if (needsSize && !selectedSize) {
+      return { valid: false, message: t("product.errSelectSize") };
+    }
+    if (needsColor && !selectedColor) {
+      return { valid: false, message: t("product.errSelectColor") };
+    }
 
-    return selectedVariant ? selectedVariant.stock > 0 : false;
-  }, [
-    isOnlyUniqueSize,
-    distinctSizes,
-    distinctColors,
-    selectedSize,
-    selectedColor,
-    selectedVariant,
-  ]);
+    const matchingVariant = variants.find((v) => {
+      const sizeMatches = isOnlyUniqueSize
+        ? true
+        : needsSize
+        ? v.size === selectedSize
+        : true;
+      const colorMatches = needsColor ? v.color === selectedColor : true;
+      return sizeMatches && colorMatches;
+    });
 
-  // Add to cart handler
+    if (!matchingVariant && variants.length > 0) {
+      return {
+        valid: false,
+        message: t("product.errComboUnavailable"),
+      };
+    }
+
+    if (matchingVariant && matchingVariant.stock <= 0) {
+      return { valid: false, message: t("product.errVariantSoldOut") };
+    }
+
+    if (!matchingVariant) {
+      return { valid: false, message: t("product.errVariantSoldOut") };
+    }
+
+    return { valid: true, variant: matchingVariant };
+  };
+
+  // Add to cart handler (ouvre le panneau du panier)
   const handleAddToCart = async () => {
-    if (!isSelectionComplete) {
-      if (!isOnlyUniqueSize && distinctSizes.length > 0 && !selectedSize) {
-        sizeSectionRef.current?.scrollIntoView({
+    const result = validateSelection();
+    if (!result.valid) {
+      setSelectionError(result.message);
+      setTimeout(() => {
+        errorRef.current?.scrollIntoView({
           behavior: "smooth",
           block: "center",
         });
-      }
+      }, 0);
       return;
     }
 
-    if (!selectedVariant || !product) return;
+    if (!product) return;
 
     setIsAddingToCart(true);
     try {
       await addItem({
-        variant_id: selectedVariant.id,
+        variant_id: result.variant.id,
         product_id: product.id,
         product_name: product.name,
         product_slug: product.slug,
         image_url: activeImage?.url ?? null,
-        size: selectedVariant.size ?? null,
-        color: selectedVariant.color ?? null,
-        sku: selectedVariant.sku,
-        unit_price: selectedVariant.price ?? product.price,
-        currency: selectedVariant.currency || product.currency || "XOF",
-        stock: selectedVariant.stock,
+        size: result.variant.size ?? null,
+        color: result.variant.color ?? null,
+        sku: result.variant.sku,
+        unit_price: result.variant.price ?? product.price,
+        currency: result.variant.currency || product.currency || "XOF",
+        stock: result.variant.stock,
       });
       openCart();
     } finally {
       setIsAddingToCart(false);
+    }
+  };
+
+  // Acheter maintenant handler (même validation, ajoute l'article puis va à /commande)
+  const handleBuyNow = async () => {
+    const result = validateSelection();
+    if (!result.valid) {
+      setSelectionError(result.message);
+      setTimeout(() => {
+        errorRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 0);
+      return;
+    }
+
+    if (!product) return;
+
+    setIsBuyingNow(true);
+    try {
+      await addItem({
+        variant_id: result.variant.id,
+        product_id: product.id,
+        product_name: product.name,
+        product_slug: product.slug,
+        image_url: activeImage?.url ?? null,
+        size: result.variant.size ?? null,
+        color: result.variant.color ?? null,
+        sku: result.variant.sku,
+        unit_price: result.variant.price ?? product.price,
+        currency: result.variant.currency || product.currency || "XOF",
+        stock: result.variant.stock,
+      });
+      navigate("/commande");
+    } finally {
+      setIsBuyingNow(false);
     }
   };
 
@@ -338,11 +423,11 @@ export default function ProductDetailPage() {
     return (
       <div className={styles.page}>
         <ErrorState
-          title="Impossible de charger le produit"
+          title={t("product.loadError")}
           message={error}
           action={
             <Button variant="outline" size="sm" onClick={loadProduct}>
-              Réessayer
+              {t("common.retry")}
             </Button>
           }
         />
@@ -354,8 +439,8 @@ export default function ProductDetailPage() {
     return (
       <div className={styles.page}>
         <EmptyState
-          title="Produit introuvable"
-          description="Ce produit n'existe pas ou n'est plus en vente."
+          title={t("product.notFound")}
+          description={t("product.notFoundDesc")}
         />
       </div>
     );
@@ -364,7 +449,6 @@ export default function ProductDetailPage() {
   const hasDiscount =
     product.compare_at_price != null && product.compare_at_price > product.price;
   const currentPrice = selectedVariant?.price ?? product.price;
-  const currencyLabel = product.currency || "FCFA";
   const activeImage = images[activeImageIndex] || null;
 
   // Guide des tailles seulement s'il est renseigné dans le produit (ne rien inventer)
@@ -402,8 +486,8 @@ export default function ProductDetailPage() {
       {/* 4. Fil d'Ariane */}
       <Breadcrumb
         items={[
-          { label: "Accueil", href: "/" },
-          { label: "Boutique", href: "/boutique" },
+          { label: t("common.home"), href: "/" },
+          { label: t("common.shop"), href: "/boutique" },
           ...(categoryName
             ? [
                 {
@@ -425,7 +509,7 @@ export default function ProductDetailPage() {
           <div
             className={styles.mainImageWrap}
             onClick={() => setIsZoomed((z) => !z)}
-            title="Cliquer pour zoomer"
+            title={t("product.zoomHint")}
           >
             {activeImage ? (
               <img
@@ -498,7 +582,7 @@ export default function ProductDetailPage() {
                 .join(" ")}
               onClick={handleToggleFavorite}
               aria-label={
-                isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"
+                isFavorite ? t("product.removeFavorite") : t("product.addFavorite")
               }
             >
               <Heart
@@ -512,11 +596,11 @@ export default function ProductDetailPage() {
           {/* Prix */}
           <div className={styles.priceRow}>
             <span className={hasDiscount ? styles.priceDiscount : styles.price}>
-              {currentPrice.toLocaleString("fr-FR")} {currencyLabel}
+              {formatPrice(currentPrice)}
             </span>
             {hasDiscount && (
               <span className={styles.originalPrice}>
-                {product.compare_at_price!.toLocaleString("fr-FR")} {currencyLabel}
+                {formatPrice(product.compare_at_price!)}
               </span>
             )}
           </div>
@@ -529,7 +613,7 @@ export default function ProductDetailPage() {
           {/* Sélecteur de couleur */}
           {distinctColors.length > 0 && (
             <div className={styles.selectorGroup}>
-              <span className={styles.selectorTitle}>Couleur :</span>
+              <span className={styles.selectorTitle}>{t("product.color")}</span>
               <div className={styles.optionsGrid}>
                 {distinctColors.map((color) => {
                   const isActive = selectedColor === color;
@@ -557,7 +641,7 @@ export default function ProductDetailPage() {
           {!isOnlyUniqueSize && distinctSizes.length > 0 && (
             <div className={styles.selectorGroup} ref={sizeSectionRef}>
               <div className={styles.selectorHeader}>
-                <span className={styles.selectorTitle}>Taille / Pointure :</span>
+                <span className={styles.selectorTitle}>{t("product.size")}</span>
                 {/* Guide des tailles : seulement s'il est renseigné */}
                 {Boolean(productSizeGuide) && (
                   <button
@@ -565,7 +649,7 @@ export default function ProductDetailPage() {
                     className={styles.sizeGuideBtn}
                     onClick={() => setShowSizeGuide(true)}
                   >
-                    Guide des tailles
+                    {t("product.sizeGuide")}
                   </button>
                 )}
               </div>
@@ -606,14 +690,25 @@ export default function ProductDetailPage() {
           {selectedVariant && (
             <div className={styles.stockNote}>
               {selectedVariant.stock > 5 ? (
-                <span>En stock</span>
+                <span>{t("product.inStock")}</span>
               ) : selectedVariant.stock > 0 ? (
                 <span style={{ color: "var(--color-accent)" }}>
-                  Plus que {selectedVariant.stock} exemplaire(s) disponible(s)
+                  {t("product.stockRemaining", { count: selectedVariant.stock })}
                 </span>
               ) : (
-                <span style={{ color: "var(--color-error)" }}>Épuisé</span>
+                <span style={{ color: "var(--color-error)" }}>{t("product.soldOut")}</span>
               )}
+            </div>
+          )}
+
+          {/* Message d'erreur sélection */}
+          {selectionError && (
+            <div
+              ref={errorRef}
+              role="alert"
+              className={styles.selectionError}
+            >
+              {selectionError}
             </div>
           )}
 
@@ -622,16 +717,18 @@ export default function ProductDetailPage() {
             <Button
               variant="primary"
               size="lg"
-              disabled={
-                !isSelectionComplete &&
-                Boolean(
-                  (distinctSizes.length > 0 && !isOnlyUniqueSize && selectedSize) ||
-                    (distinctColors.length > 0 && selectedColor)
-                )
-              }
+              disabled={isAddingToCart || isBuyingNow}
               onClick={handleAddToCart}
             >
-              {isAddingToCart ? "Ajout en cours…" : "AJOUTER AU SAC"}
+              {isAddingToCart ? t("product.addingToCart") : t("product.addToCart")}
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              disabled={isAddingToCart || isBuyingNow}
+              onClick={handleBuyNow}
+            >
+              {isBuyingNow ? t("product.redirecting") : t("product.buyNow")}
             </Button>
           </div>
         </div>
@@ -675,7 +772,7 @@ export default function ProductDetailPage() {
       {/* 3. Section « À associer » */}
       {complementaryProducts.length > 0 && (
         <section className={styles.similarSection}>
-          <h2 className={styles.similarTitle}>À associer</h2>
+          <h2 className={styles.similarTitle}>{t("product.complementary")}</h2>
           <div className={styles.similarGrid}>
             {complementaryProducts.map((p) => {
               const cardData: ProductCardData = {
@@ -709,11 +806,11 @@ export default function ProductDetailPage() {
               hasDiscount ? styles.mobileBarPriceDiscount : styles.mobileBarPrice
             }
           >
-            {currentPrice.toLocaleString("fr-FR")} {currencyLabel}
+            {formatPrice(currentPrice)}
           </span>
           {hasDiscount && (
             <span className={styles.mobileBarOriginalPrice}>
-              {product.compare_at_price!.toLocaleString("fr-FR")} {currencyLabel}
+              {formatPrice(product.compare_at_price!)}
             </span>
           )}
         </div>
@@ -722,9 +819,9 @@ export default function ProductDetailPage() {
           size="md"
           className={styles.mobileBarBtn}
           onClick={handleAddToCart}
-          disabled={isAddingToCart}
+          disabled={isAddingToCart || isBuyingNow}
         >
-          {isAddingToCart ? "Ajout…" : "AJOUTER AU SAC"}
+          {isAddingToCart ? t("product.addingToCart") : t("product.addToCart")}
         </Button>
       </aside>
     </div>

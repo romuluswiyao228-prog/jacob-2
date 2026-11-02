@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,6 +23,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function ForgotPasswordPage() {
+  const { t } = useTranslation();
   const { resetPassword } = useAuth();
   const [serverError, setServerError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -45,8 +47,8 @@ export default function ForgotPasswordPage() {
   const breadcrumbEl = (
     <Breadcrumb
       items={[
-        { label: "Accueil", href: "/" },
-        { label: "Mot de passe oublié" },
+        { label: t("common.home"), href: "/" },
+        { label: t("auth.forgotPassword") },
       ]}
     />
   );
@@ -62,27 +64,27 @@ export default function ForgotPasswordPage() {
           Si un compte existe avec cette adresse, un e-mail de réinitialisation
           vous a été envoyé. Pensez à regarder dans vos courriers indésirables.
         </AuthText>
-        <AuthButtonLink to="/connexion">Retour à la connexion</AuthButtonLink>
+        <AuthButtonLink to="/connexion">{t("auth.backToLogin")}</AuthButtonLink>
       </AuthShell>
     );
   }
 
   return (
     <AuthShell
-      title="Mot de passe oublié"
+      title={t("auth.resetTitle")}
       breadcrumb={breadcrumbEl}
-      subtitle="Saisissez votre e-mail pour recevoir un lien de réinitialisation."
+      subtitle={t("auth.resetSubtitle")}
       pitch="Ça arrive. On vous renvoie un lien."
       footer={
         <p>
-          <AuthLink to="/connexion">Retour à la connexion</AuthLink>
+          <AuthLink to="/connexion">{t("auth.backToLogin")}</AuthLink>
         </p>
       }
     >
       <AuthForm onSubmit={handleSubmit(onSubmit)} noValidate>
         {serverError && <AuthAlert>{serverError}</AuthAlert>}
         <AuthField
-          label="E-mail"
+          label={t("auth.email")}
           type="email"
           autoComplete="email"
           inputMode="email"
@@ -90,7 +92,7 @@ export default function ForgotPasswordPage() {
           {...register("email")}
         />
         <AuthSubmit loading={isSubmitting} loadingLabel="Envoi…">
-          Envoyer le lien
+          {t("auth.resetBtn")}
         </AuthSubmit>
       </AuthForm>
     </AuthShell>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Heart } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { useCurrency } from "@/lib/currency-context";
 import { supabase } from "@/lib/supabase";
 import { sortSizes } from "@/lib/sizes";
 import styles from "./ProductCard.module.css";
@@ -15,6 +16,7 @@ export function ProductCard({
   onToggleFavorite,
 }: ProductCardProps) {
   const { user } = useAuth();
+  const { formatPrice } = useCurrency();
   const navigate = useNavigate();
   const [internalSize, setInternalSize] = useState<string | undefined>(
     selectedSize
@@ -136,7 +138,6 @@ export function ProductCard({
   }
 
   const productLink = `/produit/${product.slug || product.id}`;
-  const currencyLabel = product.currency || "FCFA";
 
   const effectiveSizes = product.sizes && product.sizes.length > 0 ? product.sizes : loadedSizes;
   const visibleSizes = effectiveSizes.filter(
@@ -227,11 +228,11 @@ export function ProductCard({
           <span
             className={hasDiscount ? styles.priceDiscount : styles.price}
           >
-            {product.price.toLocaleString("fr-FR")} {currencyLabel}
+            {formatPrice(product.price)}
           </span>
           {hasDiscount && (
             <span className={styles.originalPrice}>
-              {product.originalPrice!.toLocaleString("fr-FR")} {currencyLabel}
+              {formatPrice(product.originalPrice!)}
             </span>
           )}
         </div>
