@@ -168,15 +168,46 @@ export default function HomePage() {
         onRetry={refetchCategories}
       >
         <div className={styles.categoryGrid}>
-          {(categories ?? []).map((cat) => (
-            <Link
-              key={cat.id}
-              to={`/categorie/${cat.slug}`}
-              className={styles.categoryCard}
-            >
-              <span className={styles.categoryName}>{cat.name}</span>
-            </Link>
-          ))}
+          {(categories ?? []).map((cat) => {
+            const hasImage = Boolean(cat.image_url);
+            return (
+              <Link
+                key={cat.id}
+                to={`/categorie/${cat.slug}`}
+                className={[
+                  styles.categoryCard,
+                  hasImage ? styles.categoryCardWithImage : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                {hasImage && (
+                  <>
+                    <img
+                      src={cat.image_url!}
+                      alt=""
+                      aria-hidden="true"
+                      className={styles.categoryBgImage}
+                      loading="lazy"
+                      width={400}
+                      height={250}
+                    />
+                    <div className={styles.categoryOverlay} />
+                  </>
+                )}
+                <span
+                  className={[
+                    styles.categoryName,
+                    hasImage ? styles.categoryNameWithImage : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  {cat.name}
+                </span>
+              </Link>
+            );
+          })}
         </div>
       </Section>
 

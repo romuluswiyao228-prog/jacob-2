@@ -1,5 +1,5 @@
-import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth-context";
 import { useCart } from "@/lib/cart-context";
@@ -24,6 +24,20 @@ export function Header({ storeName }: HeaderProps) {
   const [moreOpen, setMoreOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Fermer le menu mobile et les panneaux lors d'un changement de route
+  useEffect(() => {
+    setMobileOpen(false);
+    setSearchOpen(false);
+    setMoreOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const handleCloseMobile = () => setMobileOpen(false);
+    window.addEventListener("close-mobile-menu", handleCloseMobile);
+    return () => window.removeEventListener("close-mobile-menu", handleCloseMobile);
+  }, []);
 
   const mainCategories = (categories ?? []).slice(0, 5);
   const extraCategories = (categories ?? []).slice(5);

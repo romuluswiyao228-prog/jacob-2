@@ -104,6 +104,51 @@
   white-space: nowrap;
 }
 
+.thumbImg {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  background: var(--color-neutral-900);
+  border: 1px solid var(--color-neutral-700);
+  border-radius: var(--radius);
+  display: block;
+}
+
+.thumbPlaceholder {
+  width: 44px;
+  height: 44px;
+  background: var(--color-neutral-900);
+  border: 1px dashed var(--color-neutral-700);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-neutral-500);
+}
+
+.imagePreviewWrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-2);
+}
+
+.imagePreview {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border: 1px solid var(--color-neutral-700);
+  border-radius: var(--radius);
+  background: var(--color-neutral-900);
+}
+
+.fileInput {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--color-neutral-400);
+  margin-top: var(--space-2);
+}
+
 .table td {
   padding: var(--space-4);
   border-bottom: var(--border-width) solid var(--color-neutral-700);

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { z } from "zod";
-import { Plus, Edit2, Check, X, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Edit2, Check, X, ArrowUp, ArrowDown, Image as ImageIcon, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { slugify } from "@/lib/admin-utils";
 import type { Category } from "@/lib/db-types";
@@ -14,6 +14,7 @@ const categorySchema = z.object({
     .min(2, "Le slug doit comporter au moins 2 caractères.")
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug invalide (minuscules, chiffres et tirets uniquement)"),
   description: z.string().trim().optional(),
+  image_url: z.string().trim().optional(),
   sort_order: z.coerce.number().int("L'ordre doit être un entier").default(0),
   is_active: z.boolean().default(true),
 });
@@ -32,12 +33,15 @@ export default function AdminCategoriesPage() {
     name: "",
     slug: "",
     description: "",
+    image_url: "",
     sort_order: 0,
     is_active: true,
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   const loadCategories = useCallback(async () => {
     setLoading(true);
@@ -70,10 +74,12 @@ export default function AdminCategoriesPage() {
       name: "",
       slug: "",
       description: "",
+      image_url: "",
       sort_order: nextOrder,
       is_active: true,
     });
     setFormErrors({});
+    setImageError(null);
     setModalError(null);
     setModalOpen(true);
   };
@@ -84,12 +90,62 @@ export default function AdminCategoriesPage() {
       name: cat.name,
       slug: cat.slug,
       description: cat.description ?? "",
+      image_url: cat.image_url ?? "",
       sort_order: cat.sort_order,
       is_active: cat.is_active,
     });
     setFormErrors({});
+    setImageError(null);
     setModalError(null);
     setModalOpen(true);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImageError(null);
+
+    const validTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      setImageError("Formats acceptés : JPG, PNG, WEBP.");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError("L'image dépasse la taille maximale autorisée de 5 Mo.");
+      e.target.value = "";
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const cleanSlug = formData.slug || slugify(formData.name) || "category";
+      const filePath = `categories/${cleanSlug}_${Date.now()}.${ext}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from("store-assets")
+        .upload(filePath, file, {
+          contentType: file.type,
+          upsert: true,
+        });
+
+      if (uploadErr) throw uploadErr;
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("store-assets").getPublicUrl(filePath);
+
+      setFormData((prev) => ({ ...prev, image_url: publicUrl }));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erreur lors du téléversement de l'image";
+      setImageError(msg);
+    } finally {
+      setUploadingImage(false);
+      e.target.value = "";
+    }
   };
 
   const handleNameChange = (nameVal: string) => {
@@ -171,6 +227,7 @@ export default function AdminCategoriesPage() {
         name: result.data.name,
         slug: result.data.slug,
         description: result.data.description || null,
+        image_url: result.data.image_url || null,
         sort_order: result.data.sort_order,
         is_active: result.data.is_active,
       };
@@ -230,6 +287,7 @@ export default function AdminCategoriesPage() {
           <table className={styles.table}>
             <thead>
               <tr>
+                <th>Visuel</th>
                 <th>Ordre</th>
                 <th>Nom</th>
                 <th>Slug</th>
@@ -241,6 +299,22 @@ export default function AdminCategoriesPage() {
             <tbody>
               {categories.map((cat, idx) => (
                 <tr key={cat.id}>
+                  <td>
+                    {cat.image_url ? (
+                      <img
+                        src={cat.image_url}
+                        alt={cat.name}
+                        className={styles.thumbImg}
+                        width={44}
+                        height={44}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className={styles.thumbPlaceholder}>
+                        <ImageIcon size={16} />
+                      </div>
+                    )}
+                  </td>
                   <td className={styles.orderCell}>
                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                       <span>#{cat.sort_order}</span>
@@ -400,6 +474,52 @@ export default function AdminCategoriesPage() {
                     setFormData((prev) => ({ ...prev, description: e.target.value }))
                   }
                 />
+              </div>
+
+              <div className={styles.formField}>
+                <label className={styles.label} htmlFor="cat-image">
+                  Photo de couverture (bucket store-assets, max 5 Mo)
+                </label>
+                {formData.image_url ? (
+                  <div className={styles.imagePreviewWrap}>
+                    <img
+                      src={formData.image_url}
+                      alt="Aperçu catégorie"
+                      className={styles.imagePreview}
+                      width={80}
+                      height={80}
+                      loading="lazy"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, image_url: "" }))}
+                      className={styles.secondaryBtn}
+                      style={{ minHeight: "36px", padding: "0 var(--space-3)", fontSize: "var(--text-xs)" }}
+                    >
+                      <Trash2 size={14} />
+                      <span>Supprimer la photo</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      id="cat-image"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleImageUpload}
+                      disabled={uploadingImage}
+                      className={styles.fileInput}
+                    />
+                    {uploadingImage && (
+                      <span style={{ fontSize: "var(--text-xs)", color: "var(--color-brand)", marginTop: "4px", display: "block" }}>
+                        Téléversement de la photo en cours…
+                      </span>
+                    )}
+                  </div>
+                )}
+                {imageError && (
+                  <span className={styles.fieldError}>{imageError}</span>
+                )}
               </div>
 
               <div className={styles.formField}>

@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useParams, useSearchParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
-import { useCategories } from "@/lib/hooks";
+import { useCategories, useCollections } from "@/lib/hooks";
 import { ProductCard, Skeleton, EmptyState, ErrorState, Button, Breadcrumb } from "@/components/ui";
 import { SEO } from "@/components/SEO";
 import { sortSizes, isNoSizeCategory } from "@/lib/sizes";
@@ -18,8 +18,27 @@ export default function ShopPage() {
   const { t } = useTranslation();
   const { slug } = useParams<{ slug?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
-  const { data: categories } = useCategories();
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
+  const { data: collections, isLoading: collectionsLoading } = useCollections(100);
+
+  // Detect which route we're on
+  const isCollectionRoute = location.pathname.startsWith("/collection/");
+  const isCategoryRoute = location.pathname.startsWith("/categorie/");
+
+  // Redirect legacy /boutique?categorie=xxx → /categorie/xxx
+  useEffect(() => {
+    const qCat = searchParams.get("categorie");
+    if (!slug && qCat && !isCollectionRoute) {
+      const params = new URLSearchParams(searchParams);
+      params.delete("categorie");
+      params.delete("taille");
+      const rest = params.toString();
+      navigate(`/categorie/${qCat}${rest ? `?${rest}` : ""}`, { replace: true });
+    }
+  }, [slug, searchParams, navigate, isCollectionRoute]);
 
   // Mobile drawer state
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
@@ -45,8 +64,12 @@ export default function ShopPage() {
     return () => clearTimeout(timer);
   }, [searchInput, setSearchParams]);
 
+  // Request counter to ignore stale responses
+  const requestIdRef = useRef(0);
+
   // Current filters from URL
-  const selectedCategorySlug = slug || searchParams.get("categorie") || "";
+  // On a collection route, slug is a collection slug — not a category
+  const selectedCategorySlug = isCategoryRoute ? (slug || searchParams.get("categorie") || "") : "";
   const selectedSize = searchParams.get("taille") || "";
   const selectedSort = searchParams.get("tri") || "newest";
 
@@ -64,6 +87,46 @@ export default function ShopPage() {
   const currentCategory = useMemo(() => {
     return categories?.find((c) => c.slug === selectedCategorySlug) || null;
   }, [categories, selectedCategorySlug]);
+
+  // Collection object (when on /collection/:slug)
+  const currentCollection = useMemo(() => {
+    if (!isCollectionRoute || !slug) return null;
+    return collections?.find((c) => c.slug === slug) || null;
+  }, [collections, isCollectionRoute, slug]);
+
+  // Unknown slug detection (after data loads)
+  const categoriesLoaded = categories !== null && categories !== undefined;
+  const collectionsLoaded = collections !== null && collections !== undefined;
+  const categoryNotFound = Boolean(
+    isCategoryRoute && slug && !categoriesLoading && categoriesLoaded && !categories.find((c) => c.slug === slug)
+  );
+  const collectionNotFound = Boolean(
+    isCollectionRoute && slug && !collectionsLoading && collectionsLoaded && !collections.find((c) => c.slug === slug)
+  );
+
+  // Products belonging to the active collection (if on /collection/:slug)
+  const [collectionProductIds, setCollectionProductIds] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    if (!isCollectionRoute || !currentCollection) {
+      setCollectionProductIds(null);
+      return;
+    }
+    let cancelled = false;
+    async function loadCollectionProducts() {
+      const { data } = await supabase
+        .from("collection_products")
+        .select("product_id")
+        .eq("collection_id", currentCollection!.id);
+      if (!cancelled) {
+        setCollectionProductIds((data || []).map((cp: { product_id: string }) => cp.product_id));
+      }
+    }
+    loadCollectionProducts();
+    return () => {
+      cancelled = true;
+    };
+  }, [isCollectionRoute, currentCollection]);
 
   // Fetch available sizes for the selected category
   const [availableSizes, setAvailableSizes] = useState<string[]>([]);
@@ -129,7 +192,13 @@ export default function ShopPage() {
         )
         .eq("is_archived", false);
 
-      if (currentCategory) {
+      if (isCollectionRoute) {
+        if (collectionProductIds && collectionProductIds.length > 0) {
+          q = q.in("id", collectionProductIds);
+        } else if (collectionProductIds && collectionProductIds.length === 0) {
+          q = q.in("id", ["00000000-0000-0000-0000-000000000000"]);
+        }
+      } else if (currentCategory) {
         q = q.eq("category_id", currentCategory.id);
       }
 
@@ -147,7 +216,7 @@ export default function ShopPage() {
 
       return q.range(from, to);
     },
-    [currentCategory, debouncedSearch, selectedSort]
+    [currentCategory, isCollectionRoute, collectionProductIds, debouncedSearch, selectedSort]
   );
 
   // Helper to enrich raw products with images and variants
@@ -211,7 +280,9 @@ export default function ShopPage() {
 
   // Initial fetch on filters change
   const fetchInitialProducts = useCallback(async () => {
+    const currentRequestId = ++requestIdRef.current;
     setIsLoading(true);
+    setProducts([]);
     setError(null);
 
     try {
@@ -220,6 +291,7 @@ export default function ShopPage() {
         PAGE_SIZE - 1
       );
 
+      if (currentRequestId !== requestIdRef.current) return;
       if (fetchErr) throw fetchErr;
 
       setTotalCount(count ?? 0);
@@ -228,14 +300,19 @@ export default function ShopPage() {
         rawProducts ?? []
       );
 
+      if (currentRequestId !== requestIdRef.current) return;
+
       setProducts(enriched);
       setProductVariants(variantsMap);
       setSecondaryImages(secondaryMap);
     } catch (err: unknown) {
+      if (currentRequestId !== requestIdRef.current) return;
       const msg = err instanceof Error ? err.message : "Erreur de chargement";
       setError(msg);
     } finally {
-      setIsLoading(false);
+      if (currentRequestId === requestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [buildQuery, enrichProducts]);
 
@@ -319,27 +396,25 @@ export default function ShopPage() {
   };
 
   const handleCategorySelect = (catSlug: string) => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (catSlug) {
-        next.set("categorie", catSlug);
-      } else {
-        next.delete("categorie");
-      }
-      next.delete("taille");
-      return next;
-    });
+    const nextParams = new URLSearchParams();
+    const q = searchParams.get("q");
+    const tri = searchParams.get("tri");
+    if (q) nextParams.set("q", q);
+    if (tri) nextParams.set("tri", tri);
+
+    const queryString = nextParams.toString();
+    const queryPart = queryString ? `?${queryString}` : "";
+
+    if (catSlug) {
+      navigate(`/categorie/${catSlug}${queryPart}`);
+    } else {
+      navigate(`/boutique${queryPart}`);
+    }
   };
 
   const handleClearAll = () => {
     setSearchInput("");
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.delete("categorie");
-      next.delete("taille");
-      next.delete("q");
-      return next;
-    });
+    navigate("/boutique");
   };
 
   // Active filters count for mobile button "FILTRER (n)"
@@ -359,8 +434,45 @@ export default function ShopPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [mobileDrawerOpen]);
 
-  const pageTitle = currentCategory ? currentCategory.name : "Catalogue Boutique";
-  const pageDescription = currentCategory?.description || "Explorez le catalogue de pièces streetwear contemporaines de JACOB DE JESUS.";
+  if (categoryNotFound || collectionNotFound) {
+    const isCat = categoryNotFound;
+    return (
+      <div className={styles.page}>
+        <SEO title="Catégorie introuvable" />
+        <Breadcrumb
+          items={[
+            { label: t("common.home"), href: "/" },
+            { label: t("common.shop"), href: "/boutique" },
+            { label: "Catégorie introuvable" },
+          ]}
+          className={styles.breadcrumb}
+        />
+        <EmptyState
+          title="Catégorie introuvable"
+          description={
+            isCat
+              ? `La catégorie « ${slug} » n'existe pas ou n'est plus disponible.`
+              : `La collection « ${slug} » n'existe pas ou n'est plus disponible.`
+          }
+          action={
+            <Link to="/boutique">
+              <Button variant="primary">Voir toute la boutique</Button>
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
+
+  const pageTitle = currentCollection
+    ? currentCollection.name
+    : currentCategory
+    ? currentCategory.name
+    : t("shop.title");
+  const pageDescription =
+    currentCollection?.description ||
+    currentCategory?.description ||
+    "Explorez le catalogue de pièces streetwear contemporaines de JACOB DE JESUS.";
 
   return (
     <div className={styles.page}>
@@ -372,7 +484,12 @@ export default function ShopPage() {
       <Breadcrumb
         items={[
           { label: t("common.home"), href: "/" },
-          ...(currentCategory
+          ...(currentCollection
+            ? [
+                { label: t("common.shop"), href: "/boutique" },
+                { label: currentCollection.name },
+              ]
+            : currentCategory
             ? [
                 { label: t("common.shop"), href: "/boutique" },
                 { label: currentCategory.name },
@@ -386,14 +503,20 @@ export default function ShopPage() {
       <header className={styles.header}>
         <div className={styles.headerTop}>
           <h1 className={styles.title}>
-            {currentCategory ? currentCategory.name : t("shop.title")}
+            {currentCollection
+              ? currentCollection.name
+              : currentCategory
+              ? currentCategory.name
+              : t("shop.title")}
           </h1>
           <span className={styles.articleCount}>
             {t("shop.itemCount", { count: totalCount })}
           </span>
         </div>
-        {currentCategory?.description && (
-          <p className={styles.description}>{currentCategory.description}</p>
+        {(currentCollection?.description || currentCategory?.description) && (
+          <p className={styles.description}>
+            {currentCollection?.description || currentCategory?.description}
+          </p>
         )}
       </header>
 

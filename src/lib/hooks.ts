@@ -48,7 +48,7 @@ export function useCategories(): QueryState<Category[]> {
   return useQuery(async () => {
     const { data, error } = await supabase
       .from("categories")
-      .select("id, name, slug, description, sort_order, is_active")
+      .select("id, name, slug, description, sort_order, is_active, image_url")
       .eq("is_active", true)
       .order("sort_order", { ascending: true })
       .limit(20);

@@ -9,6 +9,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Layout } from "@/components/layout/Layout";
 import { ToastProvider } from "@/components/ui/Toast";
+import { ScrollToTop } from "@/components/ScrollToTop";
 import styles from "./App.module.css";
 
 const LoginPage = lazy(() => import("@/routes/LoginPage"));
@@ -76,6 +77,7 @@ export default function App() {
         <CartProvider>
           <ToastProvider>
             <BrowserRouter>
+              <ScrollToTop />
               <ErrorBoundary>
                 <Layout>
                   <Suspense fallback={<PageFallback />}>
