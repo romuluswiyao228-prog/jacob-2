@@ -20,7 +20,7 @@
   border: var(--border-width) solid var(--color-neutral-300);
   border-radius: var(--radius);
   padding: var(--space-3) var(--space-4);
-  min-height: 40px;
+  min-height: 44px;
   width: 100%;
   transition: border-color var(--transition-base);
 }

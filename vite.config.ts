@@ -13,6 +13,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
+    fileParallelism: false,
     setupFiles: ["./src/test-setup.ts"],
     // Valeurs factices : les tests ne dependent pas du fichier .env
     env: {

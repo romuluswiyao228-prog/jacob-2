@@ -21,7 +21,7 @@ Migration taux_de_change
 
 -- 1. Table exchange_rates
 CREATE TABLE IF NOT EXISTS public.exchange_rates (
-  devise text PRIMARY KEY CHECK (length(devise) = 3),
+  devise text PRIMARY KEY CHECK (length(devise) = 3 AND devise = upper(devise)),
   taux numeric NOT NULL CHECK (taux > 0),
   mis_a_jour timestamptz NOT NULL DEFAULT now()
 );
@@ -40,18 +40,16 @@ CREATE POLICY "modify_exchange_rates_admin_aal2" ON public.exchange_rates
   USING (public.is_admin_aal2())
   WITH CHECK (public.is_admin_aal2());
 
+REVOKE ALL ON public.exchange_rates FROM anon, authenticated;
 GRANT SELECT ON public.exchange_rates TO anon, authenticated;
-GRANT ALL ON public.exchange_rates TO authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.exchange_rates TO authenticated;
 
 -- Insertion parité fixe EUR (1 EUR = 655.957 XOF) et devises initiales
 INSERT INTO public.exchange_rates (devise, taux, mis_a_jour)
 VALUES
   ('XOF', 1.0, now()),
-  ('EUR', (1.0 / 655.957)::numeric, now()),
-  ('USD', (1.08 / 655.957)::numeric, now())
-ON CONFLICT (devise) DO UPDATE
-  SET taux = EXCLUDED.taux,
-      mis_a_jour = EXCLUDED.mis_a_jour;
+  ('EUR', (1.0 / 655.957)::numeric, now())
+ON CONFLICT (devise) DO NOTHING;
 
 -- 2. Colonne enabled_currencies dans store_settings
 ALTER TABLE public.store_settings

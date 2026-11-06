@@ -37,3 +37,10 @@
   border-color: var(--color-neutral-900);
 }
 
+@media (max-width: 768px) {
+  .langBtn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+

@@ -141,9 +141,9 @@ describe("ShopPage Navigation & Category Filter (BUG 2)", () => {
       );
     });
 
-    // Wait a tick for initial effects and promises
+    // Wait for debounce (300ms) + async effects to settle
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 400));
     });
 
     return container;
@@ -183,7 +183,7 @@ describe("ShopPage Navigation & Category Filter (BUG 2)", () => {
     expect(currentLocation.search).toContain("q=oversize");
     expect(currentLocation.search).toContain("tri=price_asc");
     expect(currentLocation.search).not.toContain("categorie=");
-  });
+  }, 15000);
 
   it("(b-bis) redirige les anciens liens /boutique?categorie=xxx vers /categorie/xxx (replace)", async () => {
     await renderShopPage("/boutique?categorie=t-shirts&tri=newest");

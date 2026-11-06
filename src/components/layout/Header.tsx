@@ -23,6 +23,7 @@ export function Header({ storeName }: HeaderProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
+  const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -39,6 +40,13 @@ export function Header({ storeName }: HeaderProps) {
     return () => window.removeEventListener("close-mobile-menu", handleCloseMobile);
   }, []);
 
+  // Compact header on scroll
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 48);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const mainCategories = (categories ?? []).slice(0, 5);
   const extraCategories = (categories ?? []).slice(5);
 
@@ -53,7 +61,7 @@ export function Header({ storeName }: HeaderProps) {
 
   return (
     <>
-      <header className={styles.header}>
+      <header className={`${styles.header} ${scrolled ? styles.headerScrolled : ""}`}>
         <div className={styles.inner}>
           {/* Mobile menu button */}
           <button

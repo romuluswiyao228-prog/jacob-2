@@ -10,10 +10,10 @@
 .inner {
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: clamp(40px, 6vw, 88px) 4vw;
+  padding: var(--section-gap) 4vw;
   display: flex;
   flex-direction: column;
-  gap: var(--space-7);
+  gap: var(--section-inner-gap);
 }
 
 .header {
@@ -26,10 +26,10 @@
 .title {
   font-family: var(--font-display);
   font-weight: var(--weight-regular);
-  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-size: var(--ts-section-title);
   text-transform: uppercase;
   letter-spacing: 0.01em;
-  line-height: 1;
+  line-height: var(--lh-section-title, 1);
 }
 
 .more {
@@ -56,6 +56,17 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-5);
+}
+
+.skeletonCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.skeletonImage {
+  aspect-ratio: 4 / 5;
+  width: 100%;
 }
 
 @media (max-width: 768px) {

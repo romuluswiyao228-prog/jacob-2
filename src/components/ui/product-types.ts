@@ -10,6 +10,7 @@ export interface ProductCardData {
   imageAlt?: string;
   secondaryImage?: string | null;
   sizes?: string[];
+  colors?: string[];
   badge?: "new" | "sale" | "soldout" | null;
   isSoldOut?: boolean;
   isFavorite?: boolean;

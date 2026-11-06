@@ -4,6 +4,12 @@
   z-index: 100;
   background: var(--color-surface);
   border-bottom: var(--border-width) solid var(--color-border);
+  transition: box-shadow var(--transition-base);
+}
+
+/* Compact shadow when scrolled */
+.headerScrolled {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .inner {
@@ -14,6 +20,12 @@
   margin: 0 auto;
   padding: 0 var(--space-5);
   height: var(--header-height);
+  transition: height var(--transition-base);
+}
+
+/* Compact inner height when scrolled */
+.headerScrolled .inner {
+  height: 48px;
 }
 
 /* --- Menu button (mobile) --- */
@@ -23,6 +35,9 @@
   align-items: center;
   justify-content: center;
   color: var(--color-text);
+  /* 44px min touch target */
+  min-width: 44px;
+  min-height: 44px;
   padding: var(--space-2);
 }
 
@@ -132,6 +147,9 @@
   justify-content: center;
   position: relative;
   color: var(--color-text);
+  /* 44px min touch target */
+  min-width: 44px;
+  min-height: 44px;
   padding: var(--space-2);
   transition: opacity var(--transition-fast);
 }

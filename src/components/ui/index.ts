@@ -13,8 +13,13 @@ export type { BadgeProps } from "./Badge";
 export { ProductCard } from "./ProductCard";
 export type { ProductCardData, ProductCardProps } from "./product-types";
 
+export { ProductCarousel } from "./ProductCarousel";
+export type { ProductCarouselProps } from "./ProductCarousel";
+
 export { Skeleton } from "./Skeleton";
 export type { SkeletonProps } from "./Skeleton";
+
+export { Stripe } from "./Stripe";
 
 export { ToastProvider, useToast } from "./Toast";
 export type { ToastMessage } from "./Toast";

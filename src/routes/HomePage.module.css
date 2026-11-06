@@ -249,7 +249,7 @@
 .brandInner {
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: clamp(56px, 9vw, 128px) 4vw;
+  padding: var(--section-gap) 4vw;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
   gap: var(--space-9);
@@ -258,15 +258,15 @@
 .brandTitle {
   font-family: var(--font-display);
   font-weight: var(--weight-regular);
-  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-size: var(--ts-section-title);
   text-transform: uppercase;
   letter-spacing: 0.01em;
-  line-height: 1;
+  line-height: var(--lh-section-title, 1);
 }
 
 .brandText {
   max-width: 52ch;
-  font-size: clamp(1.25rem, 2.2vw, 1.875rem);
+  font-size: var(--ts-subtitle);
   font-weight: var(--weight-medium);
   line-height: 1.35;
   white-space: pre-line;

@@ -5,7 +5,7 @@ import { Search, SlidersHorizontal, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { useCategories, useCollections } from "@/lib/hooks";
-import { ProductCard, Skeleton, EmptyState, ErrorState, Button, Breadcrumb } from "@/components/ui";
+import { ProductCard, Skeleton, EmptyState, ErrorState, Button, Breadcrumb, Stripe } from "@/components/ui";
 import { SEO } from "@/components/SEO";
 import { sortSizes, isNoSizeCategory } from "@/lib/sizes";
 import type { ProductWithImage, ProductVariant } from "@/lib/db-types";
@@ -520,6 +520,9 @@ export default function ShopPage() {
         )}
       </header>
 
+      {/* Bande signature sous le titre boutique */}
+      <Stripe className={styles.shopStripe} />
+
       <div className={styles.contentLayout}>
         {/* 2. Filtres en barre latérale sur ordinateur */}
         <aside className={styles.sidebar}>
@@ -692,12 +695,9 @@ export default function ShopPage() {
           {isLoading ? (
             <div className={styles.grid}>
               {Array.from({ length: 8 }).map((_, i) => (
-                <div
-                  key={i}
-                  style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-                >
-                  <Skeleton variant="rect" width="100%" height="320px" />
-                  <Skeleton variant="text" width="60%" />
+                <div key={i} className={styles.skeletonCard}>
+                  <Skeleton variant="rect" className={styles.skeletonImage} />
+                  <Skeleton variant="text" width="70%" />
                   <Skeleton variant="text" width="40%" />
                 </div>
               ))}
@@ -741,6 +741,13 @@ export default function ShopPage() {
                     )
                   );
                   const sortedSizes = sortSizes(rawSizes);
+                  const rawColors = Array.from(
+                    new Set(
+                      vars
+                        .map((v) => v.color)
+                        .filter((c): c is string => Boolean(c))
+                    )
+                  );
 
                   const hasDiscount =
                     p.compare_at_price != null && p.compare_at_price > p.price;
@@ -759,6 +766,7 @@ export default function ShopPage() {
                     imageAlt: p.primary_image?.alt_text ?? p.name,
                     secondaryImage: secondaryImages[p.id] ?? null,
                     sizes: sortedSizes,
+                    colors: rawColors,
                     badge: isSoldOut
                       ? "soldout"
                       : hasDiscount

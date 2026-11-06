@@ -51,10 +51,13 @@ export function Section({
         <div className={styles.body}>
           {isLoading ? (
             <div className={styles.skeletonRow}>
-              <Skeleton variant="rect" height="300px" />
-              <Skeleton variant="rect" height="300px" />
-              <Skeleton variant="rect" height="300px" />
-              <Skeleton variant="rect" height="300px" />
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className={styles.skeletonCard}>
+                  <Skeleton variant="rect" className={styles.skeletonImage} />
+                  <Skeleton variant="text" width="70%" />
+                  <Skeleton variant="text" width="40%" />
+                </div>
+              ))}
             </div>
           ) : error ? (
             <ErrorState

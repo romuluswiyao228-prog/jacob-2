@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useCurrency } from "@/lib/currency-context";
 import { supabase } from "@/lib/supabase";
 import { sortSizes } from "@/lib/sizes";
+import { getColorHex, isLightColor } from "@/lib/colors";
 import styles from "./ProductCard.module.css";
 import { Badge } from "./Badge";
 import type { ProductCardProps } from "./product-types";
@@ -23,6 +24,7 @@ export function ProductCard({
   );
 
   const [loadedSizes, setLoadedSizes] = useState<string[]>(product.sizes ?? []);
+  const [loadedColors, setLoadedColors] = useState<string[]>(product.colors ?? []);
   const [internalSoldOut, setInternalSoldOut] = useState<boolean>(product.isSoldOut ?? false);
   const [hoverImage, setHoverImage] = useState<string | null>(product.secondaryImage ?? null);
 
@@ -32,6 +34,12 @@ export function ProductCard({
       setLoadedSizes(product.sizes);
     }
   }, [product.sizes]);
+
+  useEffect(() => {
+    if (product.colors && product.colors.length > 0) {
+      setLoadedColors(product.colors);
+    }
+  }, [product.colors]);
 
   useEffect(() => {
     if (product.secondaryImage !== undefined) {
@@ -48,19 +56,20 @@ export function ProductCard({
   // Dynamically load variants and secondary image if not already provided
   useEffect(() => {
     const needsSizes = !product.sizes || product.sizes.length === 0;
+    const needsColors = !product.colors || product.colors.length === 0;
     const needsImage = product.secondaryImage === undefined;
 
-    if (!needsSizes && !needsImage) return;
+    if (!needsSizes && !needsColors && !needsImage) return;
     if (!product.id) return;
 
     let isMounted = true;
     async function loadExtra() {
       try {
         const [varRes, imgRes] = await Promise.all([
-          needsSizes
+          needsSizes || needsColors
             ? supabase
                 .from("product_variants")
-                .select("size, stock")
+                .select("size, color, stock")
                 .eq("product_id", product.id)
             : Promise.resolve({ data: null }),
           needsImage
@@ -77,14 +86,26 @@ export function ProductCard({
         if (!isMounted) return;
 
         if (varRes.data && varRes.data.length > 0) {
-          const rawSizes = Array.from(
-            new Set(
-              varRes.data
-                .map((v) => v.size)
-                .filter((s): s is string => Boolean(s) && s.trim().toLowerCase() !== "unique")
-            )
-          );
-          setLoadedSizes(sortSizes(rawSizes));
+          if (needsSizes) {
+            const rawSizes = Array.from(
+              new Set(
+                varRes.data
+                  .map((v) => v.size)
+                  .filter((s): s is string => Boolean(s) && s.trim().toLowerCase() !== "unique")
+              )
+            );
+            setLoadedSizes(sortSizes(rawSizes));
+          }
+          if (needsColors) {
+            const rawColors = Array.from(
+              new Set(
+                varRes.data
+                  .map((v) => v.color)
+                  .filter((c): c is string => Boolean(c))
+              )
+            );
+            setLoadedColors(rawColors);
+          }
           const allSoldOut = varRes.data.every((v) => (v.stock ?? 0) <= 0);
           if (allSoldOut) setInternalSoldOut(true);
         }
@@ -101,7 +122,7 @@ export function ProductCard({
     return () => {
       isMounted = false;
     };
-  }, [product.id, product.sizes, product.secondaryImage]);
+  }, [product.id, product.sizes, product.colors, product.secondaryImage]);
 
   const handleSize = (size: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -144,8 +165,18 @@ export function ProductCard({
     (s) => s && s.trim().toLowerCase() !== "unique"
   );
 
+  const effectiveColors = product.colors && product.colors.length > 0 ? product.colors : loadedColors;
+  const visibleColors = effectiveColors.filter(Boolean);
+
   return (
-    <article className={styles.card}>
+    <article
+      className={[
+        styles.card,
+        isSoldOut ? styles.cardSoldOut : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <div className={styles.imageWrap}>
         <Link to={productLink} className={styles.imageLink} aria-label={product.name}>
           {product.image ? (
@@ -155,6 +186,8 @@ export function ProductCard({
                 alt={product.imageAlt ?? product.name}
                 className={[styles.image, secondary ? styles.hasSecondary : ""].filter(Boolean).join(" ")}
                 loading="lazy"
+                width="400"
+                height="500"
               />
               {secondary && (
                 <img
@@ -162,6 +195,8 @@ export function ProductCard({
                   alt={`${product.name} - seconde photo`}
                   className={styles.secondaryImage}
                   loading="lazy"
+                  width="400"
+                  height="500"
                 />
               )}
             </>
@@ -236,6 +271,26 @@ export function ProductCard({
             </span>
           )}
         </div>
+
+        {visibleColors.length > 0 && (
+          <div className={styles.colors} aria-label="Couleurs disponibles">
+            {visibleColors.map((color) => {
+              const hex = getColorHex(color);
+              const light = isLightColor(hex);
+              return (
+                <span
+                  key={color}
+                  className={styles.colorDot}
+                  style={{
+                    backgroundColor: hex,
+                    border: light ? "1px solid var(--color-border)" : "1px solid transparent",
+                  }}
+                  title={color}
+                />
+              );
+            })}
+          </div>
+        )}
 
         {visibleSizes.length > 0 && (
           <div className={styles.sizes}>

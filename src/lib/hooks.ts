@@ -63,7 +63,6 @@ export function useStoreSettings(): QueryState<PublicStoreSettings> {
     const { data, error } = await supabase
       .from("public_store_settings")
       .select("*")
-      .limit(1)
       .maybeSingle();
 
     if (error) return { data: null, error: error.message };

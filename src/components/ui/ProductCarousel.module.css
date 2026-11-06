@@ -1,0 +1,124 @@
+/* ============================================================
+   ProductCarousel — Bande horizontale scroll-snap
+   Streetwear brutalist: clean, sharp, accessible
+   ============================================================ */
+
+.carouselWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.track {
+  display: flex;
+  gap: var(--space-4);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+  padding: 4px 1px var(--space-2);
+}
+
+.track::-webkit-scrollbar {
+  display: none;
+}
+
+.track:focus-visible {
+  outline: 2px solid var(--color-border);
+  outline-offset: 4px;
+}
+
+/* Card item widths */
+.item {
+  /* Mobile : environ 1,2 carte visible */
+  flex: 0 0 calc((100% - var(--space-4)) / 1.2);
+  min-width: 0;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+}
+
+.item > * {
+  height: 100%;
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .track {
+    gap: var(--space-5);
+  }
+
+  .item {
+    /* Tablette : environ 2,5 cartes visibles */
+    flex: 0 0 calc((100% - 2 * var(--space-5)) / 2.5);
+  }
+}
+
+@media (min-width: 1025px) {
+  .track {
+    gap: var(--space-5);
+  }
+
+  .item {
+    /* Ordinateur : environ 4,2 cartes visibles */
+    flex: 0 0 calc((100% - 4 * var(--space-5)) / 4.2);
+  }
+}
+
+/* Flèches de navigation : ordinateur uniquement */
+.arrowBtn {
+  display: none;
+}
+
+@media (min-width: 769px) {
+  .arrowBtn {
+    position: absolute;
+    top: 40%;
+    transform: translateY(-50%);
+    z-index: 10;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    color: var(--color-text);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    cursor: pointer;
+    transition: background var(--transition-base),
+      color var(--transition-base),
+      opacity var(--transition-base),
+      transform var(--transition-base);
+  }
+
+  .arrowPrev {
+    left: -20px;
+  }
+
+  .arrowNext {
+    right: -20px;
+  }
+
+  .arrowBtn:hover:not(:disabled) {
+    background: var(--color-brand);
+    color: var(--color-bg);
+    transform: translateY(-50%) scale(1.05);
+  }
+
+  .arrowBtn:disabled {
+    opacity: 0.2;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track {
+    scroll-behavior: auto;
+  }
+
+  .arrowBtn:hover:not(:disabled) {
+    transform: translateY(-50%);
+  }
+}
+

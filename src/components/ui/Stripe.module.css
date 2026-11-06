@@ -1,0 +1,36 @@
+/*
+ * Bande « chantier » : rayures jaune/noir franches, 12 px de haut, sans dégradé.
+ * Utilisée à deux endroits seulement :
+ *   1. Après le hero de l'accueil (avant les sections)
+ *   2. Sous le titre de la page boutique
+ *
+ * prefers-reduced-motion : l'animation des rayures est supprimée.
+ */
+
+.stripe {
+  width: 100%;
+  height: 12px;
+  /* Rayures diagonales jaune/noir à 45°, largeur 8px chacune, nettes */
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--color-brand) 0px,
+    var(--color-brand) 8px,
+    var(--color-bg)   8px,
+    var(--color-bg)   16px
+  );
+  /* Légère animation pour souligner le caractère dynamique */
+  animation: stripe-scroll 1.2s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes stripe-scroll {
+  from { background-position: 0 0; }
+  to   { background-position: 22.6px 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stripe {
+    animation: none;
+  }
+}
+

@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { useCart } from "@/lib/cart-context";
 import { useCurrency } from "@/lib/currency-context";
+import { useStoreSettings } from "@/lib/hooks";
 import {
   Button,
   Skeleton,
@@ -36,6 +37,7 @@ export default function ProductDetailPage() {
   const { user } = useAuth();
   const { addItem, openCart } = useCart();
   const { formatPrice } = useCurrency();
+  const { data: storeSettings } = useStoreSettings();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [images, setImages] = useState<ProductImage[]>([]);
@@ -61,6 +63,27 @@ export default function ProductDetailPage() {
 
   const sizeSectionRef = useRef<HTMLDivElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
+  const mobileCarouselRef = useRef<HTMLDivElement>(null);
+
+  const handleMobileScroll = () => {
+    if (!mobileCarouselRef.current) return;
+    const { scrollLeft, offsetWidth } = mobileCarouselRef.current;
+    if (offsetWidth > 0) {
+      const newIndex = Math.round(scrollLeft / offsetWidth);
+      if (newIndex !== activeImageIndex && newIndex >= 0 && newIndex < images.length) {
+        setActiveImageIndex(newIndex);
+      }
+    }
+  };
+
+  const scrollToMobileSlide = (index: number) => {
+    if (!mobileCarouselRef.current) return;
+    mobileCarouselRef.current.scrollTo({
+      left: index * mobileCarouselRef.current.offsetWidth,
+      behavior: "smooth",
+    });
+    setActiveImageIndex(index);
+  };
 
   const loadProduct = useCallback(async () => {
     if (!slug) return;
@@ -148,7 +171,7 @@ export default function ProductDetailPage() {
         setIsFavorite(Boolean(fav));
       }
 
-      // 3. Section « À associer » : complementary items (accessories, other categories, or featured)
+      // 3. Section « Complétez le look » : vrais produits en stock d'autres catégories
       let compQuery = supabase
         .from("products")
         .select(
@@ -160,19 +183,53 @@ export default function ProductDetailPage() {
       if (prod.category_id) {
         compQuery = compQuery.neq("category_id", prod.category_id);
       }
-      const { data: compProds } = await compQuery.limit(4);
+      const { data: compCandidates } = await compQuery.limit(10);
 
-      let finalComp = compProds ?? [];
+      // Filtrer pour ne garder que des produits réellement en stock
+      let inStockComp: typeof compCandidates = [];
+      if (compCandidates && compCandidates.length > 0) {
+        const candidateIds = compCandidates.map((c) => c.id);
+        const { data: varData } = await supabase
+          .from("product_variants")
+          .select("product_id, stock")
+          .in("product_id", candidateIds)
+          .gt("stock", 0);
+
+        const inStockProductIds = new Set((varData ?? []).map((v) => v.product_id));
+        inStockComp = compCandidates.filter((c) => inStockProductIds.has(c.id));
+      }
+
+      let finalComp = (inStockComp ?? []).slice(0, 4);
       if (finalComp.length < 4) {
-        const { data: fallbackProds } = await supabase
+        const { data: fallbackCandidates } = await supabase
           .from("products")
           .select(
             "id, name, slug, description, price, compare_at_price, currency, category_id, is_archived, is_featured, sort_order, created_at"
           )
           .eq("is_archived", false)
           .neq("id", prod.id)
-          .limit(4);
-        finalComp = fallbackProds ?? [];
+          .limit(10);
+
+        if (fallbackCandidates && fallbackCandidates.length > 0) {
+          const alreadyIds = new Set(finalComp.map((p) => p.id));
+          const fIds = fallbackCandidates
+            .filter((p) => !alreadyIds.has(p.id))
+            .map((p) => p.id);
+
+          if (fIds.length > 0) {
+            const { data: fVarData } = await supabase
+              .from("product_variants")
+              .select("product_id, stock")
+              .in("product_id", fIds)
+              .gt("stock", 0);
+
+            const inStockFIds = new Set((fVarData ?? []).map((v) => v.product_id));
+            const additions = fallbackCandidates.filter(
+              (p) => inStockFIds.has(p.id) && !alreadyIds.has(p.id)
+            );
+            finalComp = [...finalComp, ...additions].slice(0, 4);
+          }
+        }
       }
 
       if (finalComp.length > 0) {
@@ -506,66 +563,142 @@ export default function ProductDetailPage() {
       <div className={styles.layout}>
         {/* Colonne Galerie */}
         <div className={styles.gallery}>
-          <div
-            className={styles.mainImageWrap}
-            onClick={() => setIsZoomed((z) => !z)}
-            title={t("product.zoomHint")}
-          >
-            {activeImage ? (
-              <img
-                src={activeImage.url}
-                alt={activeImage.alt_text ?? product.name}
-                className={[styles.mainImage, isZoomed ? styles.zoomed : ""]
-                  .filter(Boolean)
-                  .join(" ")}
-                loading="lazy"
-              />
-            ) : (
-              <div className={styles.placeholderWrap}>
-                <svg
-                  width="64"
-                  height="64"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1"
-                >
-                  <rect x="3" y="3" width="18" height="18" rx="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <polyline points="21 15 16 10 5 21" />
-                </svg>
-                <span>Jacob de Jesus</span>
+          {/* Version Mobile : défilement horizontal avec scroll-snap et indicateur */}
+          <div className={styles.mobileGallery}>
+            <div
+              className={styles.mobileCarousel}
+              ref={mobileCarouselRef}
+              onScroll={handleMobileScroll}
+            >
+              {images.length > 0 ? (
+                images.map((img, idx) => (
+                  <div
+                    key={img.id}
+                    className={styles.mobileCarouselSlide}
+                    onClick={() => setIsZoomed((z) => !z)}
+                  >
+                    <img
+                      src={img.url}
+                      alt={img.alt_text ?? product.name}
+                      className={[
+                        styles.mainImage,
+                        isZoomed && activeImageIndex === idx ? styles.zoomed : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      loading={idx === 0 ? "eager" : "lazy"}
+                      width="400"
+                      height="500"
+                    />
+                  </div>
+                ))
+              ) : (
+                <div className={styles.placeholderWrap}>
+                  <svg
+                    width="64"
+                    height="64"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                  <span>Jacob de Jesus</span>
+                </div>
+              )}
+            </div>
+
+            {images.length > 1 && (
+              <div className={styles.mobileIndicator} aria-hidden="true">
+                {images.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    className={[
+                      styles.indicatorDot,
+                      activeImageIndex === idx ? styles.indicatorDotActive : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    onClick={() => scrollToMobileSlide(idx)}
+                    aria-label={`Photo ${idx + 1}`}
+                  />
+                ))}
               </div>
             )}
           </div>
 
-          {images.length > 1 && (
-            <div className={styles.thumbnails}>
-              {images.map((img, idx) => (
-                <button
-                  key={img.id}
-                  type="button"
-                  className={[
-                    styles.thumbBtn,
-                    activeImageIndex === idx ? styles.thumbBtnActive : "",
-                  ]
+          {/* Version Desktop : miniatures verticales et grande image sticky */}
+          <div className={styles.desktopGallery}>
+            {images.length > 1 && (
+              <div className={styles.thumbnails}>
+                {images.map((img, idx) => (
+                  <button
+                    key={img.id}
+                    type="button"
+                    className={[
+                      styles.thumbBtn,
+                      activeImageIndex === idx ? styles.thumbBtnActive : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    onClick={() => {
+                      setActiveImageIndex(idx);
+                      setIsZoomed(false);
+                    }}
+                    aria-label={`Photo ${idx + 1}`}
+                  >
+                    <img
+                      src={img.url}
+                      alt={img.alt_text ?? ""}
+                      className={styles.thumbImg}
+                      loading="lazy"
+                      width="72"
+                      height="90"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div
+              className={styles.mainImageWrap}
+              onClick={() => setIsZoomed((z) => !z)}
+              title={t("product.zoomHint")}
+            >
+              {activeImage ? (
+                <img
+                  src={activeImage.url}
+                  alt={activeImage.alt_text ?? product.name}
+                  className={[styles.mainImage, isZoomed ? styles.zoomed : ""]
                     .filter(Boolean)
                     .join(" ")}
-                  onClick={() => {
-                    setActiveImageIndex(idx);
-                    setIsZoomed(false);
-                  }}
-                  aria-label={`Photo ${idx + 1}`}
-                >
-                  <img
-                    src={img.url}
-                    alt={img.alt_text ?? ""}
-                    className={styles.thumbImg}
-                  />
-                </button>
-              ))}
+                  loading="eager"
+                  width="600"
+                  height="750"
+                />
+              ) : (
+                <div className={styles.placeholderWrap}>
+                  <svg
+                    width="64"
+                    height="64"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                  <span>Jacob de Jesus</span>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Colonne Informations & Achat */}
@@ -730,6 +863,64 @@ export default function ProductDetailPage() {
             >
               {isBuyingNow ? t("product.redirecting") : t("product.buyNow")}
             </Button>
+          </div>
+
+          {/* Bandeau de réassurance (informations réelles uniquement) */}
+          <div className={styles.reassurance}>
+            <div className={styles.reassuranceItem}>
+              <span className={styles.reassuranceBullet}>✓</span>
+              <span>Paiement à la livraison</span>
+            </div>
+            {storeSettings?.whatsapp_number && (
+              <a
+                href={`https://wa.me/${storeSettings.whatsapp_number.replace(/\D/g, "")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.reassuranceLink}
+              >
+                <span className={styles.reassuranceBullet}>✓</span>
+                <span>Contact WhatsApp : {storeSettings.whatsapp_number}</span>
+              </a>
+            )}
+          </div>
+
+          {/* Rubriques dépliables : Détails, Entretien, Livraison et retours */}
+          <div className={styles.accordions}>
+            {product.description && (
+              <details className={styles.accordion} open>
+                <summary className={styles.accordionSummary}>
+                  <span>Détails</span>
+                  <span className={styles.accordionIcon} aria-hidden="true">+</span>
+                </summary>
+                <div className={styles.accordionContent}>
+                  <p>{product.description}</p>
+                </div>
+              </details>
+            )}
+
+            {Boolean((product as any).care_instructions || (product as any).entretien) && (
+              <details className={styles.accordion}>
+                <summary className={styles.accordionSummary}>
+                  <span>Entretien</span>
+                  <span className={styles.accordionIcon} aria-hidden="true">+</span>
+                </summary>
+                <div className={styles.accordionContent}>
+                  <p>{(product as any).care_instructions || (product as any).entretien}</p>
+                </div>
+              </details>
+            )}
+
+            {Boolean(storeSettings?.returns_policy) && (
+              <details className={styles.accordion}>
+                <summary className={styles.accordionSummary}>
+                  <span>Livraison et retours</span>
+                  <span className={styles.accordionIcon} aria-hidden="true">+</span>
+                </summary>
+                <div className={styles.accordionContent}>
+                  <p>{storeSettings!.returns_policy}</p>
+                </div>
+              </details>
+            )}
           </div>
         </div>
       </div>

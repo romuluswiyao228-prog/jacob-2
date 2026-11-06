@@ -92,6 +92,23 @@
   --border-width: 1px;
   --border-width-thick: 2px;
 
+  /* --- Section spacing (vertical rhythm for public pages) --- */
+  --section-gap: clamp(56px, 8vw, 112px);     /* between independent sections   */
+  --section-inner-gap: var(--space-7);         /* between title and content block */
+
+  /* --- Échelle typographique sémantique --- */
+  --type-section-title: clamp(2rem, 5vw, 3.5rem);   /* Titre de section (Anton) */
+  --type-subtitle:      clamp(1.25rem, 2.5vw, 2rem); /* Sous-titre */
+  --type-text:          var(--text-base);            /* Texte courant */
+  --type-caption:       var(--text-xs);              /* Légende / métadonnées */
+
+  /* Alias pratiques */
+  --ts-section-title:   var(--type-section-title);
+  --ts-subtitle:        var(--type-subtitle);
+  --ts-body:            var(--type-text);
+  --ts-label:           var(--text-sm);
+  --ts-caption:         var(--type-caption);
+
   /* --- Transitions --- */
   --transition-fast: 100ms ease;
   --transition-base: 150ms ease;
@@ -121,6 +138,8 @@ html {
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Prevent horizontal overflow on all public pages */
+  overflow-x: hidden;
 }
 
 body {
@@ -129,6 +148,29 @@ body {
   line-height: var(--leading-body);
   color: var(--color-text);
   background: var(--color-surface);
+  overflow-x: hidden;
+}
+
+/* --- Selection --- */
+::selection {
+  background: var(--color-brand);
+  color: var(--color-bg);
+}
+
+/* --- Discreet scrollbar --- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-300);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neutral-400);
 }
 
 img {
@@ -149,6 +191,14 @@ button {
   outline: 2px solid #0a0a0a;
   outline-offset: 2px;
   box-shadow: 0 0 0 4px var(--color-brand);
+}
+
+/* Links & buttons: 150ms transitions */
+a,
+button {
+  transition-property: color, background-color, border-color, opacity, transform;
+  transition-duration: var(--transition-base);
+  transition-timing-function: ease;
 }
 
 input,

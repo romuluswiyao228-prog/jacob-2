@@ -146,6 +146,10 @@ vi.mock("@/lib/supabase", () => {
         }
         return {
           select: () => ({
+            maybeSingle: async () => ({ data: null, error: null }),
+            limit: () => ({
+              maybeSingle: async () => ({ data: null, error: null }),
+            }),
             eq: () => ({
               maybeSingle: async () => ({ data: null, error: null }),
             }),

@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ProductCard } from "@/components/ui";
+import { ProductCard, Stripe, ProductCarousel } from "@/components/ui";
 import { Section } from "@/components/home/Section";
 import { SEO } from "@/components/SEO";
 import {
@@ -212,7 +212,7 @@ export default function HomePage() {
       </Section>
 
       <Section
-        title={t("home.newArrivals", "Nouveautés")}
+        title={t("home.newArrivals", "Derniers drops")}
         tone="paper"
         moreHref="/boutique?tri=newest"
         isLoading={newLoading}
@@ -220,11 +220,11 @@ export default function HomePage() {
         hasData={hasNewProducts}
         onRetry={refetchNew}
       >
-        <div className={styles.productGrid}>
+        <ProductCarousel ariaLabel={t("home.newArrivals", "Derniers drops")}>
           {(newProducts ?? []).map((p) => (
             <ProductCard key={p.id} product={productToCardData(p)} />
           ))}
-        </div>
+        </ProductCarousel>
       </Section>
 
       {showBestSellerSection && (
@@ -253,11 +253,19 @@ export default function HomePage() {
         hasData={hasPromoProducts}
         onRetry={refetchPromo}
       >
-        <div className={styles.productGrid}>
-          {(promoProducts ?? []).map((p) => (
-            <ProductCard key={p.id} product={productToCardData(p)} />
-          ))}
-        </div>
+        {(promoProducts?.length ?? 0) > 4 ? (
+          <ProductCarousel ariaLabel={t("home.promotions", "Promotions")}>
+            {(promoProducts ?? []).map((p) => (
+              <ProductCard key={p.id} product={productToCardData(p)} />
+            ))}
+          </ProductCarousel>
+        ) : (
+          <div className={styles.productGrid}>
+            {(promoProducts ?? []).map((p) => (
+              <ProductCard key={p.id} product={productToCardData(p)} />
+            ))}
+          </div>
+        )}
       </Section>
 
       <Section
@@ -298,6 +306,9 @@ export default function HomePage() {
           </div>
         </section>
       )}
+
+      {/* Bande signature : entre l'accueil et le pied de page */}
+      <Stripe />
     </div>
   );
 }
