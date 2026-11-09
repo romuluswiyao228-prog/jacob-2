@@ -240,5 +240,66 @@ describe("Header", () => {
     expect(badge).not.toBeNull();
     expect(badge?.textContent).toBe("2");
   });
+
+  it("avec 9 catégories et une largeur réduite, le menu « Plus » contient les catégories qui ne tiennent pas", async () => {
+    const nineCategories = [
+      { id: "1", name: "T-shirts", slug: "t-shirts", is_active: true, description: null, sort_order: 1, image_url: null },
+      { id: "2", name: "Sweats", slug: "sweats", is_active: true, description: null, sort_order: 2, image_url: null },
+      { id: "3", name: "Vestes", slug: "vestes", is_active: true, description: null, sort_order: 3, image_url: null },
+      { id: "4", name: "Pantalons", slug: "pantalons", is_active: true, description: null, sort_order: 4, image_url: null },
+      { id: "5", name: "Casquettes", slug: "casquettes", is_active: true, description: null, sort_order: 5, image_url: null },
+      { id: "6", name: "Chaussures", slug: "chaussures", is_active: true, description: null, sort_order: 6, image_url: null },
+      { id: "7", name: "Sacs", slug: "sacs", is_active: true, description: null, sort_order: 7, image_url: null },
+      { id: "8", name: "Bijoux", slug: "bijoux", is_active: true, description: null, sort_order: 8, image_url: null },
+      { id: "9", name: "Lunettes", slug: "lunettes", is_active: true, description: null, sort_order: 9, image_url: null },
+    ];
+
+    vi.mocked(useCategories).mockReturnValue({
+      data: nineCategories,
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    // Simuler une largeur réduite (ex: 1100 px où 5 catégories tiennent et 4 vont dans Plus)
+    Object.defineProperty(window, "innerWidth", {
+      writable: true,
+      configurable: true,
+      value: 1100,
+    });
+    window.dispatchEvent(new Event("resize"));
+
+    const container = await renderHeader();
+
+    // Le bouton « Plus » est présent
+    const moreBtn = Array.from(container.querySelectorAll("button")).find((btn) =>
+      btn.textContent?.includes("Plus")
+    );
+    expect(moreBtn).toBeDefined();
+    expect(moreBtn?.getAttribute("aria-expanded")).toBe("false");
+
+    // Ouvrir le menu déroulant Plus au clic
+    await act(async () => {
+      moreBtn?.click();
+    });
+    expect(moreBtn?.getAttribute("aria-expanded")).toBe("true");
+
+    // Vérifier que le menu Plus contient les catégories qui ne tiennent pas
+    const plusLinks = Array.from(
+      container.querySelectorAll('[class*="moreDropdown"] a, [class*="moreLink"]')
+    );
+    const plusLinkTexts = plusLinks.map((l) => l.textContent);
+
+    expect(plusLinkTexts).toContain("Chaussures");
+    expect(plusLinkTexts).toContain("Sacs");
+    expect(plusLinkTexts).toContain("Bijoux");
+    expect(plusLinkTexts).toContain("Lunettes");
+
+    // Fermeture avec la touche Échap
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    });
+    expect(moreBtn?.getAttribute("aria-expanded")).toBe("false");
+  });
 });
 

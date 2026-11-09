@@ -15,6 +15,33 @@ interface HeaderProps {
   storeName: string;
 }
 
+export function calculateVisibleCategoriesCount(
+  width: number,
+  totalCategories: number,
+  hasCollections: boolean
+): number {
+  if (totalCategories <= 0) return 0;
+
+  const colBonus = hasCollections ? 0 : 1;
+
+  let maxVisible: number;
+  if (width >= 1550) {
+    maxVisible = 9;
+  } else if (width >= 1400) {
+    maxVisible = 7 + colBonus;
+  } else if (width >= 1250) {
+    maxVisible = 5 + colBonus;
+  } else if (width >= 1100) {
+    maxVisible = 4 + colBonus;
+  } else if (width >= 950) {
+    maxVisible = 3 + colBonus;
+  } else {
+    maxVisible = 2;
+  }
+
+  return Math.min(maxVisible, totalCategories);
+}
+
 export function Header({ storeName }: HeaderProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -25,12 +52,18 @@ export function Header({ storeName }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [collectionsOpen, setCollectionsOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const [scrolled, setScrolled] = useState(false);
   const [favoriteCount, setFavoriteCount] = useState(0);
+  const [windowWidth, setWindowWidth] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth : 1200
+  );
 
   const collectionsRef = useRef<HTMLDivElement>(null);
   const collectionsBtnRef = useRef<HTMLButtonElement>(null);
+  const moreRef = useRef<HTMLDivElement>(null);
+  const moreBtnRef = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -39,12 +72,20 @@ export function Header({ storeName }: HeaderProps) {
     setMobileOpen(false);
     setMobileSearchOpen(false);
     setCollectionsOpen(false);
+    setMoreOpen(false);
   }, [location.pathname]);
 
   useEffect(() => {
     const handleCloseMobile = () => setMobileOpen(false);
     window.addEventListener("close-mobile-menu", handleCloseMobile);
     return () => window.removeEventListener("close-mobile-menu", handleCloseMobile);
+  }, []);
+
+  // Recalcul sur redimensionnement de la fenêtre
+  useEffect(() => {
+    const onResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   // État compact après 40 px de défilement (64 px -> 52 px)
@@ -54,33 +95,47 @@ export function Header({ storeName }: HeaderProps) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Clavier : Échap pour fermer le menu collections
+  // Clavier : Échap pour fermer les menus collections ou plus
   useEffect(() => {
-    if (!collectionsOpen) return;
+    if (!collectionsOpen && !moreOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        setCollectionsOpen(false);
-        collectionsBtnRef.current?.focus();
+        if (collectionsOpen) {
+          setCollectionsOpen(false);
+          collectionsBtnRef.current?.focus();
+        }
+        if (moreOpen) {
+          setMoreOpen(false);
+          moreBtnRef.current?.focus();
+        }
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [collectionsOpen]);
+  }, [collectionsOpen, moreOpen]);
 
-  // Clic extérieur pour fermer le menu collections
+  // Clic extérieur pour fermer les menus collections ou plus
   useEffect(() => {
-    if (!collectionsOpen) return;
+    if (!collectionsOpen && !moreOpen) return;
     const onClickOutside = (e: MouseEvent) => {
       if (
+        collectionsOpen &&
         collectionsRef.current &&
         !collectionsRef.current.contains(e.target as Node)
       ) {
         setCollectionsOpen(false);
       }
+      if (
+        moreOpen &&
+        moreRef.current &&
+        !moreRef.current.contains(e.target as Node)
+      ) {
+        setMoreOpen(false);
+      }
     };
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
-  }, [collectionsOpen]);
+  }, [collectionsOpen, moreOpen]);
 
   // Compteur favoris : utilisateur connecté uniquement
   useEffect(() => {
@@ -125,6 +180,14 @@ export function Header({ storeName }: HeaderProps) {
     (col) => col.is_active !== false
   );
 
+  const visibleCount = calculateVisibleCategoriesCount(
+    windowWidth,
+    activeCategories.length,
+    activeCollections.length > 0
+  );
+  const visibleCategories = activeCategories.slice(0, visibleCount);
+  const extraCategories = activeCategories.slice(visibleCount);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchValue.trim()) {
@@ -159,7 +222,7 @@ export function Header({ storeName }: HeaderProps) {
               className={styles.nav}
               aria-label={t("header.categories", "Catégories")}
             >
-              {activeCategories.slice(0, 5).map((cat) => (
+              {visibleCategories.map((cat) => (
                 <Link
                   key={cat.id}
                   to={`/categorie/${cat.slug}`}
@@ -169,6 +232,46 @@ export function Header({ storeName }: HeaderProps) {
                 </Link>
               ))}
 
+              {/* Menu déroulant Plus : catégories qui ne tiennent pas */}
+              {extraCategories.length > 0 && (
+                <div className={styles.moreWrap} ref={moreRef}>
+                  <button
+                    ref={moreBtnRef}
+                    type="button"
+                    className={styles.moreBtn}
+                    onClick={() => {
+                      setMoreOpen((o) => !o);
+                      setCollectionsOpen(false);
+                    }}
+                    aria-expanded={moreOpen}
+                    aria-haspopup="true"
+                    aria-label={t("common.more", "Plus")}
+                  >
+                    <span>{t("common.more", "Plus")}</span>
+                    <ChevronDown
+                      size={14}
+                      className={moreOpen ? styles.chevronRotated : ""}
+                      aria-hidden="true"
+                    />
+                  </button>
+                  {moreOpen && (
+                    <div className={styles.moreDropdown} role="menu">
+                      {extraCategories.map((cat) => (
+                        <Link
+                          key={cat.id}
+                          to={`/categorie/${cat.slug}`}
+                          className={styles.moreLink}
+                          role="menuitem"
+                          onClick={() => setMoreOpen(false)}
+                        >
+                          {cat.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Menu déroulant Collections : masqué s'il n'y en a aucune */}
               {activeCollections.length > 0 && (
                 <div className={styles.collectionsWrap} ref={collectionsRef}>
@@ -176,7 +279,10 @@ export function Header({ storeName }: HeaderProps) {
                     ref={collectionsBtnRef}
                     type="button"
                     className={styles.collectionsBtn}
-                    onClick={() => setCollectionsOpen((o) => !o)}
+                    onClick={() => {
+                      setCollectionsOpen((o) => !o);
+                      setMoreOpen(false);
+                    }}
                     aria-expanded={collectionsOpen}
                     aria-haspopup="true"
                     aria-label={t("home.collections", "Collections")}
