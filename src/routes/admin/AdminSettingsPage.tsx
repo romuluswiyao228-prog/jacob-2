@@ -13,7 +13,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { resizeImageToMax1600 } from "@/lib/admin-utils";
+import { resizeImage, resizeImageToMax1600 } from "@/lib/admin-utils";
 import { useToast } from "@/components/ui/Toast";
 import styles from "./AdminSettingsPage.module.css";
 
@@ -24,6 +24,7 @@ interface StoreSettingsData {
   description: string;
   logo_url: string;
   banner_url: string;
+  banner_mobile_url: string;
   email: string;
   phone: string;
   whatsapp_number: string;
@@ -35,6 +36,7 @@ interface StoreSettingsData {
   latitude: number | null;
   longitude: number | null;
   about_text: string;
+  about_image_url: string;
   cgv: string;
   privacy_policy: string;
   legal_mentions: string;
@@ -54,6 +56,7 @@ const DEFAULT_SETTINGS: StoreSettingsData = {
   description: "Boutique officielle de la maison JACOB DE JESUS.",
   logo_url: "",
   banner_url: "",
+  banner_mobile_url: "",
   email: "contact@jacobdejesus.com",
   phone: "+228 90 00 00 00",
   whatsapp_number: "22890000000",
@@ -65,6 +68,7 @@ const DEFAULT_SETTINGS: StoreSettingsData = {
   latitude: 6.13748,
   longitude: 1.21227,
   about_text: "",
+  about_image_url: "",
   cgv: "",
   privacy_policy: "",
   legal_mentions: "",
@@ -87,11 +91,16 @@ export default function AdminSettingsPage() {
   const [ratesLastUpdated, setRatesLastUpdated] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [uploadingBannerMobile, setUploadingBannerMobile] = useState(false);
+  const [uploadingAboutImage, setUploadingAboutImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [bannerWarning, setBannerWarning] = useState<string | null>(null);
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
+  const bannerMobileInputRef = useRef<HTMLInputElement>(null);
+  const aboutImageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function loadSettings() {
@@ -113,6 +122,7 @@ export default function AdminSettingsPage() {
             description: data.description || "",
             logo_url: data.logo_url || "",
             banner_url: data.banner_url || "",
+            banner_mobile_url: data.banner_mobile_url || "",
             email: data.email || "",
             phone: data.phone || "",
             whatsapp_number: data.whatsapp_number || "",
@@ -124,6 +134,7 @@ export default function AdminSettingsPage() {
             latitude: data.latitude !== undefined && data.latitude !== null ? Number(data.latitude) : null,
             longitude: data.longitude !== undefined && data.longitude !== null ? Number(data.longitude) : null,
             about_text: data.about_text || "",
+            about_image_url: data.about_image_url || "",
             cgv: data.cgv || "",
             privacy_policy: data.privacy_policy || "",
             legal_mentions: data.legal_mentions || "",
@@ -232,15 +243,48 @@ export default function AdminSettingsPage() {
 
   const handleUploadImage = async (
     file: File,
-    type: "logo" | "banner"
+    type: "logo" | "banner" | "banner_mobile" | "about"
   ) => {
     try {
       if (type === "logo") setUploadingLogo(true);
-      else setUploadingBanner(true);
+      else if (type === "banner") setUploadingBanner(true);
+      else if (type === "banner_mobile") setUploadingBannerMobile(true);
+      else setUploadingAboutImage(true);
       setError(null);
 
-      // Redimensionnement max 1600px et vérification type/taille
-      const resizedBlob = await resizeImageToMax1600(file);
+      if (type === "banner") {
+        // Vérification non bloquante des dimensions
+        const testImg = new Image();
+        const testUrl = URL.createObjectURL(file);
+        await new Promise<void>((resolve) => {
+          testImg.onload = () => {
+            URL.revokeObjectURL(testUrl);
+            const w = testImg.naturalWidth || testImg.width;
+            const h = testImg.naturalHeight || testImg.height;
+            if (h > w || w < 1600) {
+              setBannerWarning(
+                "Cette photo est verticale ou trop petite : elle sera floue en bannière. Utilisez une photo horizontale d'au moins 1600 px de large."
+              );
+            } else {
+              setBannerWarning(null);
+            }
+            resolve();
+          };
+          testImg.onerror = () => {
+            URL.revokeObjectURL(testUrl);
+            resolve();
+          };
+          testImg.src = testUrl;
+        });
+      }
+
+      // Bannière ordi : max 2400px et qualité 0.9. Bannière mobile / Présentation : max 1600px et qualité 0.9. Logo : max 1600px et qualité 0.85
+      const resizedBlob =
+        type === "banner"
+          ? await resizeImage(file, { maxDimension: 2400, quality: 0.9 })
+          : type === "banner_mobile" || type === "about"
+          ? await resizeImage(file, { maxDimension: 1600, quality: 0.9 })
+          : await resizeImageToMax1600(file);
 
       const ext = file.type === "image/png" ? "png" : "webp";
       const fileName = `${type}_${Date.now()}.${ext}`;
@@ -261,12 +305,22 @@ export default function AdminSettingsPage() {
 
       if (type === "logo") {
         setSettings((prev) => ({ ...prev, logo_url: publicUrl }));
-      } else {
+      } else if (type === "banner") {
         setSettings((prev) => ({ ...prev, banner_url: publicUrl }));
+      } else if (type === "banner_mobile") {
+        setSettings((prev) => ({ ...prev, banner_mobile_url: publicUrl }));
+      } else {
+        setSettings((prev) => ({ ...prev, about_image_url: publicUrl }));
       }
 
       showToast(
-        type === "logo" ? "Logo mis à jour !" : "Bannière mise à jour !",
+        type === "logo"
+          ? "Logo mis à jour !"
+          : type === "banner"
+          ? "Bannière mise à jour !"
+          : type === "banner_mobile"
+          ? "Bannière mobile mise à jour !"
+          : "Photo de présentation mise à jour !",
         "success"
       );
     } catch (e: unknown) {
@@ -275,7 +329,9 @@ export default function AdminSettingsPage() {
       showToast(msg, "error");
     } finally {
       if (type === "logo") setUploadingLogo(false);
-      else setUploadingBanner(false);
+      else if (type === "banner") setUploadingBanner(false);
+      else if (type === "banner_mobile") setUploadingBannerMobile(false);
+      else setUploadingAboutImage(false);
     }
   };
 
@@ -303,6 +359,7 @@ export default function AdminSettingsPage() {
         description: settings.description.trim() || null,
         logo_url: settings.logo_url || null,
         banner_url: settings.banner_url || null,
+        banner_mobile_url: settings.banner_mobile_url || null,
         email: settings.email.trim() || null,
         phone: settings.phone.trim() || null,
         whatsapp_number: cleanWa || null,
@@ -314,6 +371,7 @@ export default function AdminSettingsPage() {
         latitude: settings.latitude !== null && !isNaN(Number(settings.latitude)) ? Number(settings.latitude) : null,
         longitude: settings.longitude !== null && !isNaN(Number(settings.longitude)) ? Number(settings.longitude) : null,
         about_text: settings.about_text.trim() || null,
+        about_image_url: settings.about_image_url || null,
         cgv: settings.cgv.trim() || null,
         privacy_policy: settings.privacy_policy.trim() || null,
         legal_mentions: settings.legal_mentions.trim() || null,
@@ -542,7 +600,10 @@ export default function AdminSettingsPage() {
                     <button
                       type="button"
                       className={styles.removeBtn}
-                      onClick={() => handleChange("banner_url", "")}
+                      onClick={() => {
+                        handleChange("banner_url", "");
+                        setBannerWarning(null);
+                      }}
                     >
                       <Trash2 size={13} />
                       <span>Retirer</span>
@@ -550,7 +611,68 @@ export default function AdminSettingsPage() {
                   )}
                 </div>
                 <span className={styles.fieldHelp}>
-                  Photo plein écran d'ambiance pour la page d'accueil (max 1600px).
+                  Photo horizontale d'au moins 2000 px de large, sujet au centre. 500 Ko à 1 Mo maximum.
+                </span>
+                {bannerWarning && (
+                  <div
+                    className={styles.alertBox}
+                    style={{ marginTop: "var(--space-2)" }}
+                    role="alert"
+                  >
+                    {bannerWarning}
+                  </div>
+                )}
+              </div>
+
+              {/* Banner Mobile Upload */}
+              <div className={styles.imageUploadBox}>
+                <label className={styles.fieldLabel}>
+                  Photo de bannière pour téléphone (verticale, facultative)
+                </label>
+                <div className={styles.imagePreviewWrap}>
+                  {settings.banner_mobile_url ? (
+                    <img
+                      src={settings.banner_mobile_url}
+                      alt="Bannière pour téléphone"
+                      className={styles.bannerPreview}
+                    />
+                  ) : (
+                    <span className={styles.imagePlaceholder}>Aucune bannière mobile configurée</span>
+                  )}
+                </div>
+                <div className={styles.uploadActions}>
+                  <input
+                    ref={bannerMobileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className={styles.fileInputHidden}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleUploadImage(file, "banner_mobile");
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className={styles.uploadBtn}
+                    disabled={uploadingBannerMobile}
+                    onClick={() => bannerMobileInputRef.current?.click()}
+                  >
+                    <Upload size={14} />
+                    <span>{uploadingBannerMobile ? "Envoi…" : "Changer la bannière mobile"}</span>
+                  </button>
+                  {settings.banner_mobile_url && (
+                    <button
+                      type="button"
+                      className={styles.removeBtn}
+                      onClick={() => handleChange("banner_mobile_url", "")}
+                    >
+                      <Trash2 size={13} />
+                      <span>Retirer</span>
+                    </button>
+                  )}
+                </div>
+                <span className={styles.fieldHelp}>
+                  Photo verticale 1080 × 1350 px minimum, sujet au centre.
                 </span>
               </div>
             </div>
@@ -837,6 +959,56 @@ export default function AdminSettingsPage() {
                 className={`${styles.textarea} ${styles.textareaLarge}`}
                 placeholder="Racontez la vision de JACOB DE JESUS..."
               />
+            </div>
+
+            {/* Photo de présentation */}
+            <div className={styles.imageUploadBox}>
+              <label className={styles.fieldLabel}>Photo de présentation</label>
+              <div className={styles.imagePreviewWrap}>
+                {settings.about_image_url ? (
+                  <img
+                    src={settings.about_image_url}
+                    alt="Photo de présentation"
+                    className={styles.bannerPreview}
+                  />
+                ) : (
+                  <span className={styles.imagePlaceholder}>Aucune photo de présentation</span>
+                )}
+              </div>
+              <div className={styles.uploadActions}>
+                <input
+                  ref={aboutImageInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className={styles.fileInputHidden}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleUploadImage(file, "about");
+                  }}
+                />
+                <button
+                  type="button"
+                  className={styles.uploadBtn}
+                  disabled={uploadingAboutImage}
+                  onClick={() => aboutImageInputRef.current?.click()}
+                >
+                  <Upload size={14} />
+                  <span>{uploadingAboutImage ? "Envoi…" : "Changer la photo"}</span>
+                </button>
+                {settings.about_image_url && (
+                  <button
+                    type="button"
+                    className={styles.removeBtn}
+                    onClick={() => handleChange("about_image_url", "")}
+                  >
+                    <Trash2 size={13} />
+                    <span>Retirer</span>
+                  </button>
+                )}
+              </div>
+              <span className={styles.fieldHelp}>
+                Photo illustrant la marque (format 4:5 recommandé, max 1600 px, 5 Mo maximum).
+              </span>
             </div>
 
             <div className={styles.fieldGroup}>

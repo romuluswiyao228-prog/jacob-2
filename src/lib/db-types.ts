@@ -65,9 +65,11 @@ export interface StoreSettings {
   cgv: string | null;
   privacy_policy: string | null;
   about_text: string | null;
+  about_image_url: string | null;
   announcement_text: string | null;
   whatsapp_number: string | null;
   banner_url: string | null;
+  banner_mobile_url: string | null;
   latitude: number | null;
   longitude: number | null;
   opening_hours: string | null;
@@ -88,12 +90,14 @@ export interface PublicStoreSettings {
   currency: string;
   social_links: Record<string, string>;
   about_text: string | null;
+  about_image_url: string | null;
   legal_mentions: string | null;
   cgv: string | null;
   privacy_policy: string | null;
   announcement_text: string | null;
   whatsapp_number: string | null;
   banner_url: string | null;
+  banner_mobile_url: string | null;
   latitude: number | null;
   longitude: number | null;
   opening_hours: string | null;

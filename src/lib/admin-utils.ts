@@ -15,7 +15,10 @@ export function formatXOF(amount: number): string {
   }).format(amount) + " FCFA";
 }
 
-export async function resizeImageToMax1600(file: File): Promise<Blob> {
+export async function resizeImage(
+  file: File,
+  { maxDimension, quality }: { maxDimension: number; quality: number }
+): Promise<File | Blob> {
   const validTypes = ["image/jpeg", "image/png", "image/webp"];
   if (!validTypes.includes(file.type)) {
     throw new Error("Format non supporté. Formats acceptés : JPEG, PNG, WEBP.");
@@ -32,15 +35,15 @@ export async function resizeImageToMax1600(file: File): Promise<Blob> {
 
     img.onload = () => {
       URL.revokeObjectURL(url);
-      const { width, height } = img;
-      const MAX_DIM = 1600;
+      const { naturalWidth: width, naturalHeight: height } = img;
 
-      if (width <= MAX_DIM && height <= MAX_DIM) {
+      // Ne jamais agrandir : si déjà dans les limites, retourner le fichier d'origine
+      if (width <= maxDimension && height <= maxDimension) {
         resolve(file);
         return;
       }
 
-      const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
+      const ratio = Math.min(maxDimension / width, maxDimension / height);
       const targetWidth = Math.round(width * ratio);
       const targetHeight = Math.round(height * ratio);
 
@@ -57,7 +60,6 @@ export async function resizeImageToMax1600(file: File): Promise<Blob> {
       ctx.imageSmoothingQuality = "high";
       ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
 
-      const outputType = file.type === "image/png" ? "image/png" : "image/webp";
       canvas.toBlob(
         (blob) => {
           if (blob) {
@@ -66,8 +68,8 @@ export async function resizeImageToMax1600(file: File): Promise<Blob> {
             resolve(file);
           }
         },
-        outputType,
-        0.88
+        "image/webp",
+        quality
       );
     };
 
@@ -78,4 +80,8 @@ export async function resizeImageToMax1600(file: File): Promise<Blob> {
 
     img.src = url;
   });
+}
+
+export async function resizeImageToMax1600(file: File): Promise<File | Blob> {
+  return resizeImage(file, { maxDimension: 1600, quality: 0.85 });
 }

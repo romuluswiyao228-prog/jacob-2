@@ -1,9 +1,10 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth-context";
 import { useCart } from "@/lib/cart-context";
-import { useCategories } from "@/lib/hooks";
+import { useCategories, useCollections } from "@/lib/hooks";
+import { supabase } from "@/lib/supabase";
 import { Drawer } from "@/components/ui";
 import { Menu, Search, Heart, ShoppingBag, User, ChevronDown } from "lucide-react";
 import { LanguageButton } from "@/components/i18n/LanguageButton";
@@ -19,19 +20,25 @@ export function Header({ storeName }: HeaderProps) {
   const { user } = useAuth();
   const { totalItems, openCart } = useCart();
   const { data: categories } = useCategories();
+  const { data: collections } = useCollections(20);
+
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [collectionsOpen, setCollectionsOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const [scrolled, setScrolled] = useState(false);
+  const [favoriteCount, setFavoriteCount] = useState(0);
+
+  const collectionsRef = useRef<HTMLDivElement>(null);
+  const collectionsBtnRef = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Fermer le menu mobile et les panneaux lors d'un changement de route
+  // Fermer les menus lors d'un changement de route
   useEffect(() => {
     setMobileOpen(false);
-    setSearchOpen(false);
-    setMoreOpen(false);
+    setMobileSearchOpen(false);
+    setCollectionsOpen(false);
   }, [location.pathname]);
 
   useEffect(() => {
@@ -40,104 +47,238 @@ export function Header({ storeName }: HeaderProps) {
     return () => window.removeEventListener("close-mobile-menu", handleCloseMobile);
   }, []);
 
-  // Compact header on scroll
+  // État compact après 40 px de défilement (64 px -> 52 px)
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 48);
+    const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const mainCategories = (categories ?? []).slice(0, 5);
-  const extraCategories = (categories ?? []).slice(5);
+  // Clavier : Échap pour fermer le menu collections
+  useEffect(() => {
+    if (!collectionsOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setCollectionsOpen(false);
+        collectionsBtnRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [collectionsOpen]);
+
+  // Clic extérieur pour fermer le menu collections
+  useEffect(() => {
+    if (!collectionsOpen) return;
+    const onClickOutside = (e: MouseEvent) => {
+      if (
+        collectionsRef.current &&
+        !collectionsRef.current.contains(e.target as Node)
+      ) {
+        setCollectionsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [collectionsOpen]);
+
+  // Compteur favoris : utilisateur connecté uniquement
+  useEffect(() => {
+    if (!user) {
+      setFavoriteCount(0);
+      return;
+    }
+    let isMounted = true;
+    async function loadFavoritesCount() {
+      try {
+        const { data, error } = await supabase
+          .from("favorites")
+          .select("product_id")
+          .eq("user_id", user!.id);
+        if (!error && data && isMounted) {
+          setFavoriteCount(data.length);
+        }
+      } catch {
+        // En cas d'erreur réseau, ne pas bloquer
+      }
+    }
+    loadFavoritesCount();
+
+    const handleFavUpdated = () => loadFavoritesCount();
+    window.addEventListener("favorites-updated", handleFavUpdated);
+    return () => {
+      isMounted = false;
+      window.removeEventListener("favorites-updated", handleFavUpdated);
+    };
+  }, [user]);
+
+  // Catégories actives sans Polo
+  const activeCategories = (categories ?? []).filter(
+    (c) =>
+      c.is_active !== false &&
+      c.slug.toLowerCase() !== "polo" &&
+      c.name.toLowerCase() !== "polo"
+  );
+
+  // Collections actives
+  const activeCollections = (collections ?? []).filter(
+    (col) => col.is_active !== false
+  );
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchValue.trim()) {
       navigate(`/boutique?q=${encodeURIComponent(searchValue.trim())}`);
-      setSearchOpen(false);
+      setMobileSearchOpen(false);
       setSearchValue("");
     }
   };
 
   return (
     <>
-      <header className={`${styles.header} ${scrolled ? styles.headerScrolled : ""}`}>
+      <header
+        className={`${styles.header} ${scrolled ? styles.headerScrolled : ""}`}
+      >
         <div className={styles.inner}>
-          {/* Mobile menu button */}
-          <button
-            className={styles.menuBtn}
-            onClick={() => setMobileOpen(true)}
-            aria-label={t("header.menuAria", "Menu")}
-          >
-            <Menu size={20} strokeWidth={1.5} />
-          </button>
-
-          {/* Logo */}
-          <Link to="/" className={styles.logo}>
-            {storeName}
-          </Link>
-
-          {/* Desktop nav */}
-          <nav className={styles.nav} aria-label={t("header.categories", "Catégories")}>
-            {mainCategories.map((cat) => (
-              <Link
-                key={cat.id}
-                to={`/categorie/${cat.slug}`}
-                className={styles.navLink}
-              >
-                {cat.name}
-              </Link>
-            ))}
-
-            {extraCategories.length > 0 && (
-              <div className={styles.moreWrap}>
-                <button
-                  type="button"
-                  className={styles.moreBtn}
-                  onClick={() => setMoreOpen((o) => !o)}
-                  aria-expanded={moreOpen}
-                  aria-haspopup="true"
-                >
-                  <span>{t("header.more", "Plus")}</span>
-                  <ChevronDown size={14} />
-                </button>
-                {moreOpen && (
-                  <div className={styles.moreDropdown}>
-                    {extraCategories.map((cat) => (
-                      <Link
-                        key={cat.id}
-                        to={`/categorie/${cat.slug}`}
-                        className={styles.moreLink}
-                        onClick={() => setMoreOpen(false)}
-                      >
-                        {cat.name}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </nav>
-
-          {/* Actions */}
-          <div className={styles.actions}>
-            <LanguageButton variant="header" />
-            <CurrencyButton variant="header" />
-
+          {/* Gauche : Bouton menu mobile & Logo */}
+          <div className={styles.leftGroup}>
             <button
-              className={styles.iconBtn}
-              onClick={() => setSearchOpen((s) => !s)}
+              className={styles.menuBtn}
+              onClick={() => setMobileOpen(true)}
+              aria-label={t("header.menuAria", "Menu")}
+            >
+              <Menu size={20} strokeWidth={1.5} />
+            </button>
+
+            <Link to="/" className={styles.logo}>
+              {storeName}
+            </Link>
+
+            {/* Navigation des catégories sur ordinateur */}
+            <nav
+              className={styles.nav}
+              aria-label={t("header.categories", "Catégories")}
+            >
+              {activeCategories.slice(0, 5).map((cat) => (
+                <Link
+                  key={cat.id}
+                  to={`/categorie/${cat.slug}`}
+                  className={styles.navLink}
+                >
+                  {cat.name}
+                </Link>
+              ))}
+
+              {/* Menu déroulant Collections : masqué s'il n'y en a aucune */}
+              {activeCollections.length > 0 && (
+                <div className={styles.collectionsWrap} ref={collectionsRef}>
+                  <button
+                    ref={collectionsBtnRef}
+                    type="button"
+                    className={styles.collectionsBtn}
+                    onClick={() => setCollectionsOpen((o) => !o)}
+                    aria-expanded={collectionsOpen}
+                    aria-haspopup="true"
+                    aria-label={t("home.collections", "Collections")}
+                  >
+                    <span>{t("home.collections", "Collections")}</span>
+                    <ChevronDown
+                      size={14}
+                      className={
+                        collectionsOpen ? styles.chevronRotated : ""
+                      }
+                      aria-hidden="true"
+                    />
+                  </button>
+                  {collectionsOpen && (
+                    <div
+                      className={styles.collectionsDropdown}
+                      role="menu"
+                    >
+                      {activeCollections.map((col) => (
+                        <Link
+                          key={col.id}
+                          to={`/collection/${col.slug}`}
+                          className={styles.collectionsLink}
+                          role="menuitem"
+                          onClick={() => setCollectionsOpen(false)}
+                        >
+                          {col.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </nav>
+          </div>
+
+          {/* Centre ordinateur : champ de recherche large */}
+          <div className={styles.searchCenter}>
+            <form
+              onSubmit={handleSearch}
+              className={styles.desktopSearchForm}
+              role="search"
+            >
+              <Search
+                size={16}
+                className={styles.desktopSearchIcon}
+                aria-hidden="true"
+              />
+              <input
+                type="search"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                placeholder={t(
+                  "header.searchPlaceholder",
+                  "Rechercher un produit…"
+                )}
+                className={styles.desktopSearchInput}
+                aria-label={t(
+                  "header.searchPlaceholder",
+                  "Rechercher un produit…"
+                )}
+              />
+            </form>
+          </div>
+
+          {/* Droite : Compte, Favoris, Panier, Sélecteurs */}
+          <div className={styles.actions}>
+            {/* Recherche mobile (accessible en un geste) */}
+            <button
+              className={styles.mobileSearchBtn}
+              onClick={() => setMobileSearchOpen((s) => !s)}
               aria-label={t("header.searchAria", "Recherche")}
             >
               <Search size={18} strokeWidth={1.5} />
             </button>
+
+            {/* Compte utilisateur (ordinateur) */}
+            <Link
+              to={user ? "/compte" : "/connexion"}
+              className={`${styles.iconBtn} ${styles.desktopOnly}`}
+              aria-label={
+                user
+                  ? t("header.accountAria", "Mon compte")
+                  : t("header.loginAria", "Connexion")
+              }
+            >
+              <User size={18} strokeWidth={1.5} />
+            </Link>
+
+            {/* Favoris (avec compteur visible si > 0) */}
             <Link
               to="/favoris"
               className={styles.iconBtn}
               aria-label={t("header.favoritesAria", "Favoris")}
             >
               <Heart size={18} strokeWidth={1.5} />
+              {favoriteCount > 0 && (
+                <span className={styles.badge}>{favoriteCount}</span>
+              )}
             </Link>
+
+            {/* Panier (avec compteur visible si > 0) */}
             <button
               type="button"
               onClick={openCart}
@@ -148,35 +289,37 @@ export function Header({ storeName }: HeaderProps) {
               })}
             >
               <ShoppingBag size={18} strokeWidth={1.5} />
-              {totalItems > 0 && <span className={styles.cartCount}>{totalItems}</span>}
+              {totalItems > 0 && (
+                <span className={styles.badge}>{totalItems}</span>
+              )}
             </button>
-            <Link
-              to={user ? "/compte" : "/connexion"}
-              className={styles.iconBtn}
-              aria-label={
-                user
-                  ? t("header.accountAria", "Mon compte")
-                  : t("header.loginAria", "Connexion")
-              }
-            >
-              <User size={18} strokeWidth={1.5} />
-            </Link>
+
+            {/* Sélecteurs de langue et de devise (ordinateur) */}
+            <div className={styles.desktopOnly}>
+              <LanguageButton variant="header" />
+            </div>
+            <div className={styles.desktopOnly}>
+              <CurrencyButton variant="header" />
+            </div>
           </div>
         </div>
 
-        {/* Search bar (collapsible) */}
-        {searchOpen && (
-          <div className={styles.searchBar}>
-            <form onSubmit={handleSearch} className={styles.searchForm}>
+        {/* Barre de recherche déroulante pour mobile */}
+        {mobileSearchOpen && (
+          <div className={styles.mobileSearchBar}>
+            <form onSubmit={handleSearch} className={styles.mobileSearchForm}>
               <input
                 type="search"
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
-                placeholder={t("header.searchPlaceholder", "Rechercher un produit…")}
-                className={styles.searchInput}
+                placeholder={t(
+                  "header.searchPlaceholder",
+                  "Rechercher un produit…"
+                )}
+                className={styles.mobileSearchInput}
                 autoFocus
               />
-              <button type="submit" className={styles.searchSubmit}>
+              <button type="submit" className={styles.mobileSearchSubmit}>
                 {t("header.searchSubmit", "Rechercher")}
               </button>
             </form>
@@ -184,7 +327,7 @@ export function Header({ storeName }: HeaderProps) {
         )}
       </header>
 
-      {/* Mobile drawer */}
+      {/* Tiroir mobile latéral avec catégories, collections, compte, langue et devise */}
       <Drawer
         open={mobileOpen}
         onClose={() => setMobileOpen(false)}
@@ -192,7 +335,11 @@ export function Header({ storeName }: HeaderProps) {
         side="left"
       >
         <nav className={styles.mobileNav}>
-          {(categories ?? []).map((cat) => (
+          {/* Catégories actives sans Polo */}
+          <div className={styles.mobileSectionTitle}>
+            {t("header.categories", "Catégories")}
+          </div>
+          {activeCategories.map((cat) => (
             <Link
               key={cat.id}
               to={`/categorie/${cat.slug}`}
@@ -202,6 +349,38 @@ export function Header({ storeName }: HeaderProps) {
               {cat.name}
             </Link>
           ))}
+
+          {/* Collections actives si existantes */}
+          {activeCollections.length > 0 && (
+            <>
+              <div
+                className={styles.mobileSectionTitle}
+                style={{ marginTop: "var(--space-4)" }}
+              >
+                {t("home.collections", "Collections")}
+              </div>
+              {activeCollections.map((col) => (
+                <Link
+                  key={col.id}
+                  to={`/collection/${col.slug}`}
+                  className={styles.mobileLink}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {col.name}
+                </Link>
+              ))}
+            </>
+          )}
+
+          {/* Compte */}
+          <div
+            className={styles.mobileSectionTitle}
+            style={{ marginTop: "var(--space-4)" }}
+          >
+            {user
+              ? t("header.accountAria", "Mon compte")
+              : t("header.loginAria", "Connexion")}
+          </div>
           <Link
             to={user ? "/compte" : "/connexion"}
             className={styles.mobileLink}
@@ -211,8 +390,11 @@ export function Header({ storeName }: HeaderProps) {
               ? t("header.accountAria", "Mon compte")
               : t("header.loginAria", "Connexion")}
           </Link>
-          <div style={{ marginTop: "var(--space-4)" }}>
+
+          {/* Sélecteurs de langue et de devise */}
+          <div className={styles.mobileSelectors}>
             <LanguageButton variant="header" />
+            <CurrencyButton variant="header" />
           </div>
         </nav>
       </Drawer>

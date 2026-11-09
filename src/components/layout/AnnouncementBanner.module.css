@@ -5,20 +5,66 @@
   white-space: nowrap;
   padding: var(--space-2) 0;
   border-bottom: var(--border-width) solid var(--color-bg);
+  height: 32px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+}
+
+.banner:hover .track,
+.banner:focus .track,
+.banner:focus-visible .track,
+.banner:focus-within .track {
+  animation-play-state: paused;
+}
+
+.banner:focus-visible {
+  outline: 2px solid var(--color-bg);
+  outline-offset: -2px;
+}
+
+.singleMessage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 0 var(--space-4);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .track {
   display: inline-flex;
-  gap: var(--space-8);
-  animation: scroll 20s linear infinite;
+  animation: scroll 25s linear infinite;
+  will-change: transform;
+}
+
+.trackGroup {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.messageItem {
+  display: inline-flex;
+  align-items: center;
 }
 
 .text {
+  font-family: var(--font-mono);
   font-size: var(--text-xs);
   font-weight: var(--weight-bold);
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
   flex-shrink: 0;
+}
+
+.separator {
+  margin: 0 var(--space-4);
+  opacity: 0.5;
+  font-size: var(--text-xs);
 }
 
 @keyframes scroll {
@@ -33,7 +79,5 @@
 @media (prefers-reduced-motion: reduce) {
   .track {
     animation: none;
-    display: flex;
-    justify-content: center;
   }
 }

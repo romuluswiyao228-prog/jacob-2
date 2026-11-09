@@ -86,6 +86,8 @@ export default function HomePage() {
   const hasPromoProducts = (promoProducts?.length ?? 0) > 0;
   const hasCategories = (categories?.length ?? 0) > 0;
   const aboutText = settings?.about_text?.trim() ?? "";
+  const aboutImageUrl = settings?.about_image_url?.trim() ?? "";
+  const showBrandSection = Boolean(aboutText || aboutImageUrl);
 
   // Les meilleures ventes se rabattent sur les produits mis en avant.
   const bestSellerCards: ProductCardData[] = hasBestSellers
@@ -106,13 +108,15 @@ export default function HomePage() {
     : [];
   const showBestSellerSection = hasBestSellers || hasFeatured;
 
-  // Logotype : le nom de la boutique, coupe en deux lignes, plein ecran.
+  // Logotype : le nom de la boutique, coupe en deux lignes sur mobile, une seule sur ordinateur.
   const storeName = settings?.store_name?.trim() || "JACOB DE JESUS";
   const lines = splitWordmark(storeName);
   const wordmarkStyle = {
-    "--wm-size": wordmarkSize(lines),
+    "--wm-size": wordmarkSize([storeName, ...lines]),
   } as CSSProperties;
   const bannerUrl = settings?.banner_url?.trim() || "";
+  const bannerMobileUrl = settings?.banner_mobile_url?.trim() || "";
+  const hasImage = Boolean(bannerUrl || bannerMobileUrl);
   const intro = settings?.tagline?.trim() || settings?.description?.trim() || "";
 
   return (
@@ -120,17 +124,33 @@ export default function HomePage() {
       <SEO
         title={storeName}
         description={intro || "Marque streetwear contemporaine. Pièces exclusives, finitions haut de gamme et esprit brut."}
-        ogImage={bannerUrl || "/favicon.svg"}
+        ogImage={bannerUrl || bannerMobileUrl || "/favicon.svg"}
       />
-      <section className={styles.hero}>
-        {bannerUrl && (
+      <section
+        className={[styles.hero, hasImage ? styles.heroWithImage : ""]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        {hasImage && (
           <>
-            <img
-              src={bannerUrl}
-              alt=""
-              className={styles.heroImage}
-              fetchPriority="high"
-            />
+            {bannerMobileUrl ? (
+              <picture className={styles.heroPicture}>
+                <source media="(max-width: 700px)" srcSet={bannerMobileUrl} />
+                <img
+                  src={bannerUrl || bannerMobileUrl}
+                  alt=""
+                  className={styles.heroImage}
+                  fetchPriority="high"
+                />
+              </picture>
+            ) : (
+              <img
+                src={bannerUrl}
+                alt=""
+                className={styles.heroImage}
+                fetchPriority="high"
+              />
+            )}
             <div className={styles.heroShade} />
           </>
         )}
@@ -154,7 +174,7 @@ export default function HomePage() {
           <div className={styles.heroFoot}>
             {intro ? <p className={styles.heroIntro}>{intro}</p> : <span />}
             <Link to="/boutique" className={styles.cta}>
-              {t("home.ctaShop", "Découvrir la collection")}
+              {t("home.ctaShop", "DÉCOUVRIR LA BOUTIQUE")}
             </Link>
           </div>
         </div>
@@ -298,11 +318,28 @@ export default function HomePage() {
         </div>
       </Section>
 
-      {aboutText && (
-        <section className={styles.brand}>
+      {showBrandSection && (
+        <section
+          className={[
+            styles.brand,
+            aboutImageUrl ? styles.brandWithImage : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
           <div className={styles.brandInner}>
             <h2 className={styles.brandTitle}>{t("home.brand", "La marque")}</h2>
-            <p className={styles.brandText}>{aboutText}</p>
+            <div className={styles.brandBody}>
+              {aboutImageUrl && (
+                <img
+                  src={aboutImageUrl}
+                  alt={storeName}
+                  className={styles.brandImage}
+                  loading="lazy"
+                />
+              )}
+              {aboutText && <p className={styles.brandText}>{aboutText}</p>}
+            </div>
           </div>
         </section>
       )}

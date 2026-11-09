@@ -11,8 +11,8 @@ import {
 } from "./currency";
 
 describe("Multi-currency conversion & formatting system", () => {
-  const now = new Date("2026-11-02T12:00:00Z").getTime();
-  const recentDate = new Date("2026-11-01T12:00:00Z").toISOString(); // 1 jour avant
+  const now = Date.now();
+  const recentDate = new Date(now - 86400000).toISOString(); // 1 jour avant
   const staleDate = new Date(now - MAX_RATE_AGE_MS - 3600000).toISOString(); // 7 jours + 1 heure
 
   const sampleRates: ExchangeRateMap = {
