@@ -85,3 +85,13 @@ export async function resizeImage(
 export async function resizeImageToMax1600(file: File): Promise<File | Blob> {
   return resizeImage(file, { maxDimension: 1600, quality: 0.85 });
 }
+
+/** Limite stricte : maximum 6 photos actives par côté pour la bannière d'accueil */
+export function canActivateHomeSlide(currentActiveCount: number): boolean {
+  return currentActiveCount < 6;
+}
+
+/** Recommandation : photo verticale d'au moins 1000 px de haut */
+export function isSlideImageRecommended(width: number, height: number): boolean {
+  return height >= width && height >= 1000;
+}

@@ -1,0 +1,209 @@
+.heroWrapper {
+  position: relative;
+  width: 100%;
+  background: var(--color-bg);
+  border-bottom: var(--border-width-thick) solid var(--color-bg);
+}
+
+/* --- Deux cadres photo côte à côte --- */
+.frameGrid {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 70svh;
+  min-height: 480px;
+  background: var(--color-bg);
+  overflow: hidden;
+}
+
+.twoColumns {
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.singleColumn {
+  grid-template-columns: 1fr;
+}
+
+.frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+/* Photos */
+.slideImage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  will-change: transform;
+}
+
+.slideActive {
+  transform: translateY(0);
+  z-index: 1;
+}
+
+/* La photo sortante descend et sort */
+.slideOutgoing {
+  animation: slideDownOut 700ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  z-index: 1;
+}
+
+/* La photo suivante entre par le haut */
+.slideIncoming {
+  animation: slideDownIn 700ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  z-index: 2;
+}
+
+@keyframes slideDownOut {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes slideDownIn {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.slidePreload {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Calque noir uni de 25 % pour la lisibilité, sans dégradé */
+.shade {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Contenu centré en bas */
+.overlayContent {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-6) var(--space-4) clamp(24px, 4svh, 48px);
+  z-index: 4;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.storeTitle {
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 6vw, 4.5rem);
+  font-weight: var(--weight-regular);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-display);
+  line-height: 0.92;
+  color: var(--color-text-inverse);
+  margin: 0 0 var(--space-3);
+}
+
+.tagline {
+  font-family: var(--font-body);
+  font-size: clamp(var(--text-sm), 1.8vw, var(--text-base));
+  line-height: var(--leading-body);
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 50ch;
+  margin: 0 0 var(--space-5);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  pointer-events: auto;
+}
+
+.btnShop,
+.btnNew {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4) var(--space-7);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  text-decoration: none;
+  border-radius: var(--radius);
+  transition: background var(--transition-base), color var(--transition-base), border-color var(--transition-base);
+}
+
+.btnShop {
+  background: var(--color-brand);
+  color: var(--color-bg);
+  border: var(--border-width-thick) solid var(--color-brand);
+}
+
+.btnShop:hover,
+.btnShop:focus-visible {
+  background: transparent;
+  color: var(--color-brand);
+}
+
+.btnNew {
+  background: transparent;
+  color: var(--color-text-inverse);
+  border: var(--border-width-thick) solid var(--color-text-inverse);
+}
+
+.btnNew:hover,
+.btnNew:focus-visible {
+  background: var(--color-text-inverse);
+  color: var(--color-bg);
+}
+
+/* Mobile : les deux cadres restent côte à côte, hauteur 70 svh, texte et boutons en bas, boutons pleine largeur */
+@media (max-width: 700px) {
+  .frameGrid {
+    height: 70svh;
+    min-height: 420px;
+  }
+
+  .actions {
+    width: 100%;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .btnShop,
+  .btnNew {
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+  }
+}
+
+/* Reduced motion : arrêt de toutes animations, image fixe */
+@media (prefers-reduced-motion: reduce) {
+  .slideOutgoing,
+  .slideIncoming {
+    animation: none !important;
+  }
+}
+

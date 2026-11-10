@@ -31,16 +31,16 @@ export function AccountLayout({
   };
 
   const navItems = [
-    { label: t("account.navProfile"), href: "/compte", icon: User, exact: true },
-    { label: t("account.navAddresses"), href: "/compte/adresses", icon: MapPin },
-    { label: t("account.navOrders"), href: "/compte/commandes", icon: Package },
-    { label: t("account.navFavorites"), href: "/favoris", icon: Heart },
+    { label: t("account.navProfile", "Profil"), href: "/compte", icon: User, exact: true },
+    { label: t("account.navAddresses", "Adresses"), href: "/compte/adresses", icon: MapPin },
+    { label: t("account.navOrders", "Commandes"), href: "/compte/commandes", icon: Package },
+    { label: t("account.navFavorites", "Favoris"), href: "/favoris", icon: Heart },
   ];
 
   const defaultBreadcrumbs = [
-    { label: t("common.home"), href: "/" },
-    { label: t("account.title"), href: "/compte" },
-    ...(title !== "Mon profil" ? [{ label: title }] : []),
+    { label: t("common.home", "Accueil"), href: "/" },
+    { label: t("account.title", "Mon compte"), href: "/compte" },
+    ...(title !== "Mon profil" && title !== t("account.profileTitle", "Mon profil") ? [{ label: title }] : []),
   ];
 
   return (
@@ -63,43 +63,48 @@ export function AccountLayout({
         </div>
       </header>
 
-      {/* Menu de compte : Profil, Adresses, Commandes, Favoris + bouton Déconnexion */}
-      <nav className={styles.nav} aria-label="Menu du compte">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = item.exact
-            ? location.pathname === item.href
-            : location.pathname.startsWith(item.href);
+      <div className={styles.layoutWrapper}>
+        <aside className={styles.sidebar}>
+          {/* Menu de compte : Profil, Adresses, Commandes, Favoris + bouton Déconnexion */}
+          <nav className={styles.nav} aria-label="Menu du compte">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = item.exact
+                ? location.pathname === item.href
+                : location.pathname.startsWith(item.href);
 
-          return (
-            <Link
-              key={item.href}
-              to={item.href}
-              className={[
-                styles.navLink,
-                isActive ? styles.navLinkActive : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  aria-current={isActive ? "page" : undefined}
+                  className={[
+                    styles.navLink,
+                    isActive ? styles.navLinkActive : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  <Icon size={16} />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className={styles.logoutBtn}
+              title={t("account.logout", "Déconnexion")}
             >
-              <Icon size={14} />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
+              <LogOut size={16} />
+              <span>{t("account.logout", "Déconnexion")}</span>
+            </button>
+          </nav>
+        </aside>
 
-        <button
-          type="button"
-          onClick={handleLogout}
-          className={styles.logoutBtn}
-          title={t("account.logout")}
-        >
-          <LogOut size={14} />
-          <span>{t("account.logout")}</span>
-        </button>
-      </nav>
-
-      <main className={styles.content}>{children}</main>
+        <main className={styles.content}>{children}</main>
+      </div>
     </div>
   );
 }

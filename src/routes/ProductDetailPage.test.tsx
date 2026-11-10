@@ -326,5 +326,91 @@ describe("ProductDetailPage", () => {
     expect(mockOpenCart).toHaveBeenCalled();
     expect(mockNavigate).not.toHaveBeenCalled();
   });
+
+  it("borne la quantité au stock disponible et ne descend pas sous 1", async () => {
+    const container = await renderProductPage();
+
+    // Sélectionner Blanc et M (stock = 3)
+    const colorBlancBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent?.trim() === "Blanc"
+    );
+    await act(async () => {
+      colorBlancBtn?.click();
+    });
+
+    const sizeMBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent?.trim() === "M"
+    );
+    await act(async () => {
+      sizeMBtn?.click();
+    });
+
+    const plusBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent?.trim() === "+"
+    )!;
+    const minusBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent?.trim() === "-"
+    )!;
+    const qtyValue = container.querySelector('[data-testid="quantity-value"]');
+
+    expect(qtyValue?.textContent).toBe("1");
+
+    // Incrémenter -> 2
+    await act(async () => {
+      plusBtn.click();
+    });
+    expect(qtyValue?.textContent).toBe("2");
+
+    // Incrémenter -> 3
+    await act(async () => {
+      plusBtn.click();
+    });
+    expect(qtyValue?.textContent).toBe("3");
+
+    // Tenter d'incrémenter au-delà du stock (stock = 3)
+    await act(async () => {
+      plusBtn.click();
+    });
+    expect(qtyValue?.textContent).toBe("3");
+    expect(plusBtn.disabled).toBe(true);
+
+    // Décrémenter -> 2
+    await act(async () => {
+      minusBtn.click();
+    });
+    expect(qtyValue?.textContent).toBe("2");
+
+    // Décrémenter -> 1
+    await act(async () => {
+      minusBtn.click();
+    });
+    expect(qtyValue?.textContent).toBe("1");
+
+    // Tenter de décrémenter sous 1
+    await act(async () => {
+      minusBtn.click();
+    });
+    expect(qtyValue?.textContent).toBe("1");
+    expect(minusBtn.disabled).toBe(true);
+  });
+
+  it("masque les blocs repliables vides (Détails, Entretien, Livraison, Retours)", async () => {
+    const container = await renderProductPage();
+
+    // Détails existe car mockProduct.description = "Description test"
+    expect(container.textContent).toContain("Détails");
+
+    // Les blocs sans contenu ne doivent pas apparaître
+    expect(container.textContent).not.toContain("Entretien");
+    expect(container.textContent).not.toContain("Livraison");
+    expect(container.textContent).not.toContain("Retours");
+  });
+
+  it("masque la section des produits associés lorsqu'il n'y a aucun résultat", async () => {
+    const container = await renderProductPage();
+
+    expect(container.querySelector('[aria-label="Produits associés"]')).toBeNull();
+    expect(container.textContent).not.toContain("À associer");
+  });
 });
 

@@ -2,21 +2,25 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Heart } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { useCart } from "@/lib/cart-context";
 import { useCurrency } from "@/lib/currency-context";
 import { supabase } from "@/lib/supabase";
 import { sortSizes } from "@/lib/sizes";
 import { getColorHex, isLightColor } from "@/lib/colors";
 import styles from "./ProductCard.module.css";
 import { Badge } from "./Badge";
-import type { ProductCardProps } from "./product-types";
+import { Reveal } from "./Reveal";
+import type { ProductCardProps, ProductCardVariant } from "./product-types";
 
 export function ProductCard({
   product,
   onSizeSelect,
   selectedSize,
   onToggleFavorite,
+  revealDelay,
 }: ProductCardProps) {
   const { user } = useAuth();
+  const { addItem, openCart } = useCart();
   const { formatPrice } = useCurrency();
   const navigate = useNavigate();
   const [internalSize, setInternalSize] = useState<string | undefined>(
@@ -25,6 +29,9 @@ export function ProductCard({
 
   const [loadedSizes, setLoadedSizes] = useState<string[]>(product.sizes ?? []);
   const [loadedColors, setLoadedColors] = useState<string[]>(product.colors ?? []);
+  const [loadedVariants, setLoadedVariants] = useState<ProductCardVariant[]>(
+    product.variants ?? []
+  );
   const [internalSoldOut, setInternalSoldOut] = useState<boolean>(product.isSoldOut ?? false);
   const [hoverImage, setHoverImage] = useState<string | null>(product.secondaryImage ?? null);
 
@@ -42,6 +49,12 @@ export function ProductCard({
   }, [product.colors]);
 
   useEffect(() => {
+    if (product.variants && product.variants.length > 0) {
+      setLoadedVariants(product.variants);
+    }
+  }, [product.variants]);
+
+  useEffect(() => {
     if (product.secondaryImage !== undefined) {
       setHoverImage(product.secondaryImage);
     }
@@ -57,19 +70,20 @@ export function ProductCard({
   useEffect(() => {
     const needsSizes = !product.sizes || product.sizes.length === 0;
     const needsColors = !product.colors || product.colors.length === 0;
+    const needsVariants = !product.variants || product.variants.length === 0;
     const needsImage = product.secondaryImage === undefined;
 
-    if (!needsSizes && !needsColors && !needsImage) return;
+    if (!needsSizes && !needsColors && !needsVariants && !needsImage) return;
     if (!product.id) return;
 
     let isMounted = true;
     async function loadExtra() {
       try {
         const [varRes, imgRes] = await Promise.all([
-          needsSizes || needsColors
+          needsSizes || needsColors || needsVariants
             ? supabase
                 .from("product_variants")
-                .select("size, color, stock")
+                .select("id, size, color, stock, sku, price")
                 .eq("product_id", product.id)
             : Promise.resolve({ data: null }),
           needsImage
@@ -86,6 +100,9 @@ export function ProductCard({
         if (!isMounted) return;
 
         if (varRes.data && varRes.data.length > 0) {
+          if (needsVariants) {
+            setLoadedVariants(varRes.data as ProductCardVariant[]);
+          }
           if (needsSizes) {
             const rawSizes = Array.from(
               new Set(
@@ -122,7 +139,7 @@ export function ProductCard({
     return () => {
       isMounted = false;
     };
-  }, [product.id, product.sizes, product.colors, product.secondaryImage]);
+  }, [product.id, product.sizes, product.colors, product.variants, product.secondaryImage]);
 
   const handleSize = (size: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -132,9 +149,13 @@ export function ProductCard({
     onSizeSelect?.(product.id, next || "");
   };
 
+  const [heartBouncing, setHeartBouncing] = useState(false);
+
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    setHeartBouncing(true);
+    setTimeout(() => setHeartBouncing(false), 150);
     if (!user) {
       navigate("/connexion");
       return;
@@ -142,10 +163,25 @@ export function ProductCard({
     onToggleFavorite?.(product.id);
   };
 
+  const effectiveVariants =
+    product.variants && product.variants.length > 0
+      ? product.variants
+      : loadedVariants;
+
+  const inStockVariants = effectiveVariants.filter((v) => (v.stock ?? 0) > 0);
+  const isSoldOut =
+    product.isSoldOut ||
+    internalSoldOut ||
+    (effectiveVariants.length > 0 && inStockVariants.length === 0);
+
   const hasDiscount =
     product.originalPrice != null && product.originalPrice > product.price;
 
-  const isSoldOut = product.isSoldOut || internalSoldOut;
+  const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
+  const isNew = product.createdAt
+    ? Date.now() - new Date(product.createdAt).getTime() < FOURTEEN_DAYS_MS
+    : product.badge === "new";
+
   const secondary = product.secondaryImage ?? hoverImage;
 
   // Determine badge: NOUVEAU / SOLDE (rouge) / ÉPUISÉ
@@ -154,11 +190,32 @@ export function ProductCard({
     computedBadge = { variant: "soldout", label: "ÉPUISÉ" };
   } else if (hasDiscount || product.badge === "sale") {
     computedBadge = { variant: "sale", label: "SOLDE" };
-  } else if (product.badge === "new") {
+  } else if (isNew) {
     computedBadge = { variant: "new", label: "NOUVEAU" };
   }
 
   const productLink = `/produit/${product.slug || product.id}`;
+
+  const handleQuickAdd = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (inStockVariants.length !== 1) return;
+    const v = inStockVariants[0];
+    await addItem({
+      variant_id: v.id,
+      product_id: product.id,
+      product_name: product.name,
+      product_slug: product.slug || product.id,
+      image_url: product.image || null,
+      size: v.size,
+      color: v.color,
+      sku: v.sku || product.reference,
+      unit_price: v.price ?? product.price,
+      currency: product.currency || "XOF",
+      stock: v.stock,
+    });
+    openCart();
+  };
 
   const effectiveSizes = product.sizes && product.sizes.length > 0 ? product.sizes : loadedSizes;
   const visibleSizes = effectiveSizes.filter(
@@ -169,7 +226,9 @@ export function ProductCard({
   const visibleColors = effectiveColors.filter(Boolean);
 
   return (
-    <article
+    <Reveal
+      as="article"
+      delay={revealDelay}
       className={[
         styles.card,
         isSoldOut ? styles.cardSoldOut : "",
@@ -212,7 +271,7 @@ export function ProductCard({
                 aria-hidden="true"
               >
                 <rect x="3" y="3" width="18" height="18" rx="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
+                <circle cx="8.5" r="1.5" />
                 <polyline points="21 15 16 10 5 21" />
               </svg>
               <span>Jacob de Jesus</span>
@@ -234,6 +293,7 @@ export function ProductCard({
           className={[
             styles.favoriteBtn,
             product.isFavorite ? styles.favoriteBtnActive : "",
+            heartBouncing ? styles.favoriteBtnBouncing : "",
           ]
             .filter(Boolean)
             .join(" ")}
@@ -249,6 +309,28 @@ export function ProductCard({
             strokeWidth={1.5}
           />
         </button>
+
+        {/* Bouton d'action : Ajout rapide ou Choisir la taille */}
+        {!isSoldOut && inStockVariants.length === 1 && (
+          <button
+            type="button"
+            className={styles.quickActionBtn}
+            onClick={handleQuickAdd}
+            aria-label={`Ajout rapide - ${product.name}`}
+          >
+            Ajout rapide
+          </button>
+        )}
+        {!isSoldOut && inStockVariants.length > 1 && (
+          <Link
+            to={productLink}
+            className={styles.quickActionBtn}
+            onClick={(e) => e.stopPropagation()}
+            aria-label={`Choisir la taille - ${product.name}`}
+          >
+            Choisir la taille
+          </Link>
+        )}
       </div>
 
       <div className={styles.body}>
@@ -317,6 +399,6 @@ export function ProductCard({
           </div>
         )}
       </div>
-    </article>
+    </Reveal>
   );
 }

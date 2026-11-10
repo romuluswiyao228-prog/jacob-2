@@ -50,6 +50,7 @@ export interface AddItemParams {
   unit_price: number;
   currency: string;
   stock: number;
+  quantity?: number;
 }
 
 export interface CartContextValue {
@@ -335,6 +336,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addItem = useCallback(async (params: AddItemParams) => {
     setError(null);
+    const qtyToAdd = params.quantity && params.quantity > 0 ? params.quantity : 1;
     try {
       if (user && cartIdRef.current) {
         const cartId = cartIdRef.current;
@@ -346,13 +348,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
           .maybeSingle();
 
         if (existing) {
-          const newQty = Math.min((existing as { quantity: number }).quantity + 1, params.stock);
+          const newQty = Math.min((existing as { quantity: number }).quantity + qtyToAdd, params.stock);
           await supabase.from("cart_items").update({ quantity: newQty }).eq("id", (existing as { id: string }).id);
         } else {
           await supabase.from("cart_items").insert({
             cart_id: cartId,
             variant_id: params.variant_id,
-            quantity: 1,
+            quantity: Math.min(qtyToAdd, params.stock),
             unit_price: params.unit_price,
             currency: params.currency,
           });
@@ -364,13 +366,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
           let next: CartLineItem[];
           if (idx >= 0) {
             next = prev.map((item, i) =>
-              i === idx ? { ...item, quantity: Math.min(item.quantity + 1, params.stock) } : item
+              i === idx ? { ...item, quantity: Math.min(item.quantity + qtyToAdd, params.stock) } : item
             );
           } else {
             const newLine: CartLineItem = {
               id: `local_${params.variant_id}_${Date.now()}`,
               ...params,
-              quantity: 1,
+              quantity: Math.min(qtyToAdd, params.stock),
             };
             next = [...prev, newLine];
           }
@@ -470,8 +472,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 }
 
+const defaultCartContext: CartContextValue = {
+  items: [],
+  totalItems: 0,
+  subtotal: 0,
+  currency: "XOF",
+  isOpen: false,
+  isLoading: false,
+  error: null,
+  openCart: () => {},
+  closeCart: () => {},
+  addItem: async () => {},
+  removeItem: async () => {},
+  updateQuantity: async () => {},
+  clearAlerts: () => {},
+  retry: async () => {},
+  clearCart: async () => {},
+};
+
 export function useCart(): CartContextValue {
   const ctx = useContext(CartContext);
-  if (!ctx) throw new Error("useCart must be used inside CartProvider");
+  if (!ctx) return defaultCartContext;
   return ctx;
 }

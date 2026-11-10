@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { resizeImage, resizeImageToMax1600 } from "./admin-utils";
+import { resizeImage, resizeImageToMax1600, canActivateHomeSlide, isSlideImageRecommended } from "./admin-utils";
 
 describe("resizeImage", () => {
   let originalImage: typeof Image;
@@ -164,6 +164,32 @@ describe("resizeImage", () => {
     await expect(
       resizeImage(bigFile, { maxDimension: 1600, quality: 0.85 })
     ).rejects.toThrow("L'image dépasse la taille maximale");
+  });
+});
+
+describe("canActivateHomeSlide - limite de 6 photos actives par côté", () => {
+  it("autorise l'activation si moins de 6 photos sont actives", () => {
+    expect(canActivateHomeSlide(0)).toBe(true);
+    expect(canActivateHomeSlide(3)).toBe(true);
+    expect(canActivateHomeSlide(5)).toBe(true);
+  });
+
+  it("refuse l'activation d'une 7e photo si 6 photos sont déjà actives", () => {
+    expect(canActivateHomeSlide(6)).toBe(false);
+    expect(canActivateHomeSlide(7)).toBe(false);
+  });
+});
+
+describe("isSlideImageRecommended - recommandation photo verticale >= 1000px", () => {
+  it("valide les photos verticales d'au moins 1000px de haut", () => {
+    expect(isSlideImageRecommended(800, 1200)).toBe(true);
+    expect(isSlideImageRecommended(1000, 1000)).toBe(true);
+    expect(isSlideImageRecommended(1080, 1350)).toBe(true);
+  });
+
+  it("signale non recommandée une photo horizontale ou de moins de 1000px de haut", () => {
+    expect(isSlideImageRecommended(1200, 800)).toBe(false); // horizontale
+    expect(isSlideImageRecommended(600, 900)).toBe(false);  // verticale mais < 1000px
   });
 });
 

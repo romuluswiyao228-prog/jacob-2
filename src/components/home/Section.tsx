@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Button, Skeleton, ErrorState } from "@/components/ui";
+import { Button, Skeleton, ErrorState, Reveal } from "@/components/ui";
 import styles from "./Section.module.css";
 
 interface SectionProps {
@@ -36,7 +36,8 @@ export function Section({
   const resolvedMoreLabel = moreLabel ?? t("common.seeAll", "Tout voir");
 
   return (
-    <section
+    <Reveal
+      as="section"
       className={`${styles.section} ${tone === "paper" ? styles.paper : ""}`}
     >
       <div className={styles.inner}>
@@ -75,6 +76,6 @@ export function Section({
           )}
         </div>
       </div>
-    </section>
+    </Reveal>
   );
 }

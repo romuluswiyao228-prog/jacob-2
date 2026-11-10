@@ -1,0 +1,75 @@
+/* ============================================================
+   Marquee — Défilement horizontal continu en CSS
+   Brutalist, accessible, respecte prefers-reduced-motion
+   ============================================================ */
+
+.marquee {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  user-select: none;
+}
+
+.track {
+  display: flex;
+  width: max-content;
+  flex-shrink: 0;
+  will-change: transform;
+  animation: marqueeLoop var(--marquee-duration, 25s) linear infinite;
+}
+
+.reverse {
+  animation-direction: reverse;
+}
+
+.paused {
+  animation-play-state: paused !important;
+}
+
+.marquee.pauseOnHover:hover .track {
+  animation-play-state: paused;
+}
+
+.marquee.pauseOnFocus:focus-within .track {
+  animation-play-state: paused;
+}
+
+.content {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+@keyframes marqueeLoop {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* Reduced motion : aucune animation, défilement manuel à la main */
+@media (prefers-reduced-motion: reduce) {
+  .marquee {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .track {
+    animation: none !important;
+    width: auto;
+  }
+}
+
+.reducedMotion {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.reducedMotion .track {
+  animation: none !important;
+  width: auto;
+}
+

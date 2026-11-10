@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Marquee } from "@/components/ui";
 import styles from "./AnnouncementBanner.module.css";
 
 interface AnnouncementBannerProps {
@@ -26,7 +27,7 @@ export function AnnouncementBanner({ text }: AnnouncementBannerProps) {
     .map((m) => m.trim())
     .filter(Boolean);
 
-  // 0 message : bandeau masque
+  // 0 message : bandeau masqué
   if (messages.length === 0) return null;
 
   // 1 message ou prefers-reduced-motion : texte centre fixe
@@ -40,27 +41,19 @@ export function AnnouncementBanner({ text }: AnnouncementBannerProps) {
     );
   }
 
-  // 2 messages ou plus : defilement continu avec separateurs, pause au survol et au focus
+  // 2 messages ou plus : utilise Marquee
   return (
     <div className={styles.banner} role="status" tabIndex={0}>
-      <div className={styles.track}>
+      <Marquee speed={25} pauseOnHover pauseOnFocus>
         <div className={styles.trackGroup}>
           {messages.map((msg, i) => (
-            <span key={`msg-1-${i}`} className={styles.messageItem}>
+            <span key={`msg-${i}`} className={styles.messageItem}>
               <span className={styles.text}>{msg}</span>
               <span className={styles.separator} aria-hidden="true">•</span>
             </span>
           ))}
         </div>
-        <div className={styles.trackGroup} aria-hidden="true">
-          {messages.map((msg, i) => (
-            <span key={`msg-2-${i}`} className={styles.messageItem}>
-              <span className={styles.text}>{msg}</span>
-              <span className={styles.separator} aria-hidden="true">•</span>
-            </span>
-          ))}
-        </div>
-      </div>
+      </Marquee>
     </div>
   );
 }

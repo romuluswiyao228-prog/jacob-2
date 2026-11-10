@@ -35,6 +35,7 @@ export interface Product {
 export interface ProductWithImage extends Product {
   primary_image: ProductImage | null;
   category: { name: string; slug: string } | null;
+  variants?: ProductVariant[];
 }
 
 export interface Collection {
@@ -125,6 +126,16 @@ export interface ProductVariant {
 export interface Favorite {
   user_id: string;
   product_id: string;
+}
+
+export interface HomeSlide {
+  id: string;
+  image_url: string;
+  alt_text: string;
+  side: 'left' | 'right';
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
 }
 
 export interface BestSeller {

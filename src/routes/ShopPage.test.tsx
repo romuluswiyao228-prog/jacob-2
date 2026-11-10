@@ -234,4 +234,41 @@ describe("ShopPage Navigation & Category Filter (BUG 2)", () => {
     const linkToBoutique = container.querySelector('a[href="/boutique"]');
     expect(linkToBoutique).not.toBeNull();
   });
+
+  it("affiche les puces des filtres actifs et 'Tout effacer' qui réinitialise", async () => {
+    const container = await renderShopPage("/categorie/t-shirts?taille=M");
+
+    expect(container.textContent).toContain("T-Shirts");
+    expect(container.textContent).toContain("M");
+
+    const clearBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent?.trim() === "Tout effacer"
+    );
+    expect(clearBtn).toBeDefined();
+
+    await act(async () => {
+      clearBtn?.click();
+    });
+
+    expect(currentLocation.pathname).toBe("/boutique");
+  });
+
+  it("affiche le compteur à jour dans le panneau mobile 'Voir les résultats (n)'", async () => {
+    const container = await renderShopPage("/categorie/t-shirts");
+
+    const filterBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent?.includes("FILTRES")
+    );
+    expect(filterBtn).toBeDefined();
+
+    await act(async () => {
+      filterBtn?.click();
+    });
+
+    const applyBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent?.includes("Voir les résultats")
+    );
+    expect(applyBtn).toBeDefined();
+    expect(applyBtn?.textContent).toBe("Voir les résultats (1)");
+  });
 });

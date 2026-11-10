@@ -340,6 +340,51 @@
   cursor: not-allowed;
 }
 
+/* --- Sélecteur de quantité --- */
+.quantityPicker {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 0;
+  background: var(--color-surface);
+  width: fit-content;
+}
+
+.quantityBtn {
+  width: 44px;
+  height: 44px;
+  background: none;
+  border: none;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast);
+  border-radius: 0;
+}
+
+.quantityBtn:hover:not(:disabled) {
+  background: var(--color-neutral-100);
+}
+
+.quantityBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.quantityValue {
+  min-width: 44px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+}
+
 /* --- Barre d'achat mobile fixe --- */
 .mobilePurchaseBar {
   display: none;

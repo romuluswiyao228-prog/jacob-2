@@ -42,6 +42,50 @@ export default function ShopPage() {
 
   // Mobile drawer state
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const drawerPanelRef = useRef<HTMLDivElement>(null);
+
+  // Close drawer on escape key & trap focus
+  useEffect(() => {
+    if (!mobileDrawerOpen) return;
+
+    const panel = drawerPanelRef.current;
+    if (!panel) return;
+
+    const focusable = panel.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    const firstElement = focusable[0];
+    const lastElement = focusable[focusable.length - 1];
+
+    firstElement?.focus();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMobileDrawerOpen(false);
+        return;
+      }
+      if (e.key === "Tab") {
+        if (focusable.length === 0) {
+          e.preventDefault();
+          return;
+        }
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            e.preventDefault();
+            lastElement?.focus();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            e.preventDefault();
+            firstElement?.focus();
+          }
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [mobileDrawerOpen]);
 
   // Search input with debounce 300ms
   const queryParam = searchParams.get("q") || "";
@@ -423,16 +467,7 @@ export default function ShopPage() {
     (selectedSize ? 1 : 0) +
     (debouncedSearch.trim() ? 1 : 0);
 
-  // Close drawer on escape key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMobileDrawerOpen(false);
-    };
-    if (mobileDrawerOpen) {
-      window.addEventListener("keydown", handleKeyDown);
-    }
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [mobileDrawerOpen]);
+
 
   if (categoryNotFound || collectionNotFound) {
     const isCat = categoryNotFound;
@@ -527,8 +562,11 @@ export default function ShopPage() {
         {/* 2. Filtres en barre latérale sur ordinateur */}
         <aside className={styles.sidebar}>
           {/* Catégories */}
-          <section className={styles.filterSection}>
-            <h2 className={styles.filterSectionTitle}>{t("shop.categories")}</h2>
+          <details open className={styles.filterGroup}>
+            <summary className={styles.filterSummary}>
+              <span>{t("shop.categories")}</span>
+              <span className={styles.filterIcon} aria-hidden="true">+</span>
+            </summary>
             <div className={styles.filterList}>
               <button
                 type="button"
@@ -560,12 +598,15 @@ export default function ShopPage() {
                 </button>
               ))}
             </div>
-          </section>
+          </details>
 
           {/* Filtre de taille limité aux tailles existantes, masqué pour Bijoux et Lunettes */}
           {!isNoSizeCategory(selectedCategorySlug) && availableSizes.length > 0 && (
-            <section className={styles.filterSection}>
-              <h2 className={styles.filterSectionTitle}>{t("shop.size")}</h2>
+            <details open className={styles.filterGroup}>
+              <summary className={styles.filterSummary}>
+                <span>{t("shop.size")}</span>
+                <span className={styles.filterIcon} aria-hidden="true">+</span>
+              </summary>
               <div className={styles.sizeGrid}>
                 {availableSizes.map((size) => {
                   const isActive = selectedSize === size;
@@ -586,7 +627,7 @@ export default function ShopPage() {
                   );
                 })}
               </div>
-            </section>
+            </details>
           )}
         </aside>
 
@@ -608,19 +649,15 @@ export default function ShopPage() {
             </div>
 
             <div className={styles.toolbarRight}>
-              {/* Bouton mobile FILTRER (n) */}
+              {/* Bouton mobile FILTRES (n) */}
               <button
                 type="button"
                 className={styles.mobileFilterBtn}
                 onClick={() => setMobileDrawerOpen(true)}
+                aria-label={`Ouvrir les filtres${activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ""}`}
               >
                 <SlidersHorizontal size={14} />
-                <span>{t("shop.filterTitle").toUpperCase()}</span>
-                {activeFiltersCount > 0 && (
-                  <span className={styles.mobileFilterBtnBadge}>
-                    {activeFiltersCount}
-                  </span>
-                )}
+                <span>FILTRES {activeFiltersCount > 0 ? `(${activeFiltersCount})` : ""}</span>
               </button>
 
               <select
@@ -685,7 +722,7 @@ export default function ShopPage() {
                   className={styles.clearAllBtn}
                   onClick={handleClearAll}
                 >
-                  {t("shop.clearFilters")}
+                  Tout effacer
                 </button>
               </div>
             </div>
@@ -721,11 +758,9 @@ export default function ShopPage() {
                   : t("shop.noProductsDesc")
               }
               action={
-                activeFiltersCount > 0 ? (
-                  <Button variant="outline" size="sm" onClick={handleClearAll}>
-                    {t("shop.clearFilters")}
-                  </Button>
-                ) : undefined
+                <Button variant="primary" size="md" onClick={handleClearAll}>
+                  Tout effacer
+                </Button>
               }
             />
           ) : (
@@ -810,7 +845,7 @@ export default function ShopPage() {
         </main>
       </div>
 
-      {/* 2. Tiroir sur mobile (Drawer) */}
+      {/* 2. Panneau plein écran sur mobile (Drawer) */}
       {mobileDrawerOpen && (
         <>
           <div
@@ -819,6 +854,7 @@ export default function ShopPage() {
             aria-hidden="true"
           />
           <div
+            ref={drawerPanelRef}
             className={styles.drawerPanel}
             role="dialog"
             aria-modal="true"
@@ -838,8 +874,11 @@ export default function ShopPage() {
 
             <div className={styles.drawerBody}>
               {/* Catégories dans le tiroir */}
-              <section className={styles.filterSection}>
-                <h3 className={styles.filterSectionTitle}>{t("shop.categories")}</h3>
+              <details open className={styles.filterGroup}>
+                <summary className={styles.filterSummary}>
+                  <span>{t("shop.categories")}</span>
+                  <span className={styles.filterIcon} aria-hidden="true">+</span>
+                </summary>
                 <div className={styles.filterList}>
                   <button
                     type="button"
@@ -871,12 +910,15 @@ export default function ShopPage() {
                     </button>
                   ))}
                 </div>
-              </section>
+              </details>
 
               {/* Tailles dans le tiroir (masqué pour Bijoux et Lunettes) */}
               {!isNoSizeCategory(selectedCategorySlug) && availableSizes.length > 0 && (
-                <section className={styles.filterSection}>
-                  <h3 className={styles.filterSectionTitle}>{t("shop.size")}</h3>
+                <details open className={styles.filterGroup}>
+                  <summary className={styles.filterSummary}>
+                    <span>{t("shop.size")}</span>
+                    <span className={styles.filterIcon} aria-hidden="true">+</span>
+                  </summary>
                   <div className={styles.sizeGrid}>
                     {availableSizes.map((size) => {
                       const isActive = selectedSize === size;
@@ -897,28 +939,26 @@ export default function ShopPage() {
                       );
                     })}
                   </div>
-                </section>
+                </details>
               )}
             </div>
 
             <div className={styles.drawerFooter}>
-              {activeFiltersCount > 0 && (
-                <Button
-                  variant="outline"
-                  size="md"
-                  onClick={handleClearAll}
-                  style={{ flex: 1 }}
-                >
-                  {t("shop.clearFilters")}
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                size="md"
+                onClick={handleClearAll}
+                style={{ flex: 1 }}
+              >
+                Effacer
+              </Button>
               <Button
                 variant="primary"
                 size="md"
                 onClick={() => setMobileDrawerOpen(false)}
                 style={{ flex: 1 }}
               >
-                {t("shop.apply")}
+                {`Voir les résultats (${totalCount})`}
               </Button>
             </div>
           </div>

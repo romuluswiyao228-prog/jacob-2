@@ -49,6 +49,18 @@ export function Header({ storeName }: HeaderProps) {
   const { data: categories } = useCategories();
   const { data: collections } = useCollections(20);
 
+  const prevTotalItemsRef = useRef(totalItems);
+  const [cartPulse, setCartPulse] = useState(false);
+
+  useEffect(() => {
+    if (totalItems > prevTotalItemsRef.current) {
+      setCartPulse(true);
+      const timer = setTimeout(() => setCartPulse(false), 300);
+      return () => clearTimeout(timer);
+    }
+    prevTotalItemsRef.current = totalItems;
+  }, [totalItems]);
+
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [collectionsOpen, setCollectionsOpen] = useState(false);
@@ -396,7 +408,16 @@ export function Header({ storeName }: HeaderProps) {
             >
               <ShoppingBag size={18} strokeWidth={1.5} />
               {totalItems > 0 && (
-                <span className={styles.badge}>{totalItems}</span>
+                <span
+                  className={[
+                    styles.badge,
+                    cartPulse ? styles.cartPulse : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  {totalItems}
+                </span>
               )}
             </button>
 

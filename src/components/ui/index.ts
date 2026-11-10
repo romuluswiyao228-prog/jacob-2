@@ -11,10 +11,10 @@ export { Badge } from "./Badge";
 export type { BadgeProps } from "./Badge";
 
 export { ProductCard } from "./ProductCard";
-export type { ProductCardData, ProductCardProps } from "./product-types";
+export type { ProductCardData, ProductCardProps, ProductCardVariant } from "./product-types";
 
-export { ProductCarousel } from "./ProductCarousel";
-export type { ProductCarouselProps } from "./ProductCarousel";
+export { ProductCarousel, ProductCarousel as Carousel } from "./ProductCarousel";
+export type { ProductCarouselProps, ProductCarouselProps as CarouselProps } from "./ProductCarousel";
 
 export { Skeleton } from "./Skeleton";
 export type { SkeletonProps } from "./Skeleton";
@@ -35,3 +35,11 @@ export type { EmptyStateProps } from "./EmptyState";
 
 export { ErrorState } from "./ErrorState";
 export type { ErrorStateProps } from "./ErrorState";
+
+export { Marquee } from "./Marquee";
+export type { MarqueeProps } from "./Marquee";
+
+export { Reveal } from "./Reveal";
+export type { RevealProps } from "./Reveal";
+
+

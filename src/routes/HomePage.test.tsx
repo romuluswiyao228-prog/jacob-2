@@ -8,13 +8,29 @@ vi.mock("@/lib/hooks", () => ({
   useStoreSettings: vi.fn(),
   useCategories: vi.fn(() => ({ data: [], isLoading: false, error: null, refetch: vi.fn() })),
   useNewProducts: vi.fn(() => ({ data: [], isLoading: false, error: null, refetch: vi.fn() })),
-  useBestSellers: vi.fn(() => ({ data: [], isLoading: false, error: null, refetch: vi.fn() })),
-  useFeaturedProducts: vi.fn(() => ({ data: [], isLoading: false, error: null, refetch: vi.fn() })),
   usePromoProducts: vi.fn(() => ({ data: [], isLoading: false, error: null, refetch: vi.fn() })),
   useCollections: vi.fn(() => ({ data: [], isLoading: false, error: null, refetch: vi.fn() })),
+  useAllProducts: vi.fn(() => ({ data: [], isLoading: false, error: null, refetch: vi.fn() })),
+  useArchiveProducts: vi.fn(() => ({ data: null, isLoading: false, error: null, refetch: vi.fn() })),
+  useActiveShippingZones: vi.fn(() => ({ data: [], isLoading: false, error: null, refetch: vi.fn() })),
+  useHomeSlides: vi.fn(() => ({ data: [], isLoading: false, error: null, refetch: vi.fn() })),
 }));
 
-import { useStoreSettings } from "@/lib/hooks";
+vi.mock("@/lib/auth-context", () => ({
+  useAuth: () => ({ user: null }),
+}));
+
+import {
+  useStoreSettings,
+  useCategories,
+  useNewProducts,
+  usePromoProducts,
+  useCollections,
+  useAllProducts,
+  useArchiveProducts,
+  useActiveShippingZones,
+  useHomeSlides,
+} from "@/lib/hooks";
 
 let roots: Root[] = [];
 
@@ -189,10 +205,75 @@ describe("HomePage - Bannière et responsive picture", () => {
     const heroImg = container.querySelector(".heroImage");
     expect(heroImg).toBeNull();
   });
+
+  it("affiche les deux cadres de photos d'accueil lorsque des home_slides actives existent", async () => {
+    vi.mocked(useStoreSettings).mockReturnValue({
+      data: {
+        store_name: "JACOB DE JESUS",
+        tagline: "Streetwear brutal",
+        description: null,
+        logo_url: null,
+        banner_url: null,
+        banner_mobile_url: null,
+        email: null,
+        phone: null,
+        address: null,
+        city: null,
+        country: "Togo",
+        currency: "XOF",
+        social_links: {},
+        about_text: null,
+        about_image_url: null,
+        legal_mentions: null,
+        cgv: null,
+        privacy_policy: null,
+        announcement_text: null,
+        whatsapp_number: null,
+        latitude: null,
+        longitude: null,
+        opening_hours: null,
+        returns_policy: null,
+      },
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    vi.mocked(useHomeSlides).mockReturnValue({
+      data: [
+        {
+          id: "s1",
+          image_url: "https://example.com/left.webp",
+          alt_text: "Slide Gauche",
+          side: "left",
+          sort_order: 0,
+          is_active: true,
+          created_at: "2026-11-10T00:00:00Z",
+        },
+        {
+          id: "s2",
+          image_url: "https://example.com/right.webp",
+          alt_text: "Slide Droit",
+          side: "right",
+          sort_order: 0,
+          is_active: true,
+          created_at: "2026-11-10T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    const container = await renderPage();
+    expect(container.querySelector('[data-testid="slide-frame-left"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="slide-frame-right"]')).not.toBeNull();
+    expect(container.querySelector('a[href="/boutique?tri=newest"]')).not.toBeNull();
+  });
 });
 
-describe("HomePage - Bloc La marque", () => {
-  it("affiche le bloc La marque avec photo et texte", async () => {
+describe("HomePage - Bloc La boutique", () => {
+  it("affiche le bloc La boutique avec photo et texte", async () => {
     vi.mocked(useStoreSettings).mockReturnValue({
       data: {
         store_name: "JACOB DE JESUS",
@@ -231,7 +312,7 @@ describe("HomePage - Bloc La marque", () => {
     expect(brandSection).not.toBeNull();
 
     const title = brandSection?.querySelector("h2");
-    expect(title?.textContent).toContain("La marque");
+    expect(title?.textContent).toContain("La boutique");
 
     const img = brandSection?.querySelector("img");
     expect(img).not.toBeNull();
@@ -242,7 +323,7 @@ describe("HomePage - Bloc La marque", () => {
     expect(text?.textContent).toBe("Notre histoire et vision.");
   });
 
-  it("affiche le bloc La marque sans photo (texte seul)", async () => {
+  it("affiche le bloc La boutique sans photo (texte seul)", async () => {
     vi.mocked(useStoreSettings).mockReturnValue({
       data: {
         store_name: "JACOB DE JESUS",
@@ -287,7 +368,7 @@ describe("HomePage - Bloc La marque", () => {
     expect(text?.textContent).toBe("Texte de manifeste sans photo.");
   });
 
-  it("affiche le bloc La marque avec photo seule (sans texte)", async () => {
+  it("affiche le bloc La boutique avec photo seule (sans texte)", async () => {
     vi.mocked(useStoreSettings).mockReturnValue({
       data: {
         store_name: "JACOB DE JESUS",
@@ -332,6 +413,227 @@ describe("HomePage - Bloc La marque", () => {
 
     const text = brandSection?.querySelector("p");
     expect(text).toBeNull();
+  });
+});
+
+describe("HomePage - Masquage des sections sans données", () => {
+  it("masque chaque section lorsqu'elle n'a pas de données", async () => {
+    vi.mocked(useStoreSettings).mockReturnValue({
+      data: null,
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+    vi.mocked(useCategories).mockReturnValue({ data: [], isLoading: false, error: null, refetch: vi.fn() });
+    vi.mocked(useNewProducts).mockReturnValue({ data: [], isLoading: false, error: null, refetch: vi.fn() });
+    vi.mocked(useCollections).mockReturnValue({ data: [], isLoading: false, error: null, refetch: vi.fn() });
+    vi.mocked(usePromoProducts).mockReturnValue({ data: [], isLoading: false, error: null, refetch: vi.fn() });
+    vi.mocked(useArchiveProducts).mockReturnValue({ data: null, isLoading: false, error: null, refetch: vi.fn() });
+    vi.mocked(useAllProducts).mockReturnValue({ data: [], isLoading: false, error: null, refetch: vi.fn() });
+    vi.mocked(useActiveShippingZones).mockReturnValue({ data: [], isLoading: false, error: null, refetch: vi.fn() });
+
+    const container = await renderPage();
+
+    expect(container.textContent).not.toContain("Catégories");
+    expect(container.textContent).not.toContain("Derniers drops");
+    expect(container.textContent).not.toContain("Capsules");
+    expect(container.textContent).not.toContain("Promotions");
+    expect(container.textContent).not.toContain("Archive");
+    expect(container.textContent).not.toContain("La boutique");
+    expect(container.textContent).not.toContain("Toute la boutique");
+    expect(container.querySelector('[aria-label="Informations pratiques"]')).toBeNull();
+    expect(container.textContent).not.toContain("Nous trouver");
+  });
+});
+
+describe("HomePage - Section Archive", () => {
+  it("affiche la section Archive seulement si la collection « archive » contient des produits", async () => {
+    const mockArchiveProduct = {
+      id: "arch-1",
+      name: "Hoodie Vintage",
+      slug: "hoodie-vintage",
+      description: null,
+      price: 35000,
+      compare_at_price: null,
+      currency: "XOF",
+      category_id: null,
+      is_archived: false,
+      is_featured: false,
+      sort_order: 1,
+      created_at: "2026-01-01T00:00:00Z",
+      primary_image: {
+        id: "img-1",
+        product_id: "arch-1",
+        url: "https://example.com/arch.webp",
+        alt_text: "Hoodie Vintage",
+        sort_order: 1,
+        is_primary: true,
+      },
+      category: null,
+      variants: [],
+    };
+
+    vi.mocked(useArchiveProducts).mockReturnValue({
+      data: {
+        collection: {
+          id: "col-archive-id",
+          name: "Archive",
+          slug: "archive",
+          description: null,
+          image_url: null,
+          is_active: true,
+          starts_at: null,
+          ends_at: null,
+        },
+        products: [mockArchiveProduct],
+      },
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    const container = await renderPage();
+
+    expect(container.textContent).toContain("Archive");
+    expect(container.textContent).toContain("Anciens drops et pièces limitées.");
+    expect(container.textContent).toContain("Hoodie Vintage");
+
+    const archiveBtn = container.querySelector('a[href="/collection/archive"]');
+    expect(archiveBtn).not.toBeNull();
+    expect(archiveBtn?.textContent).toContain("Voir l'archive");
+  });
+
+  it("masque la section Archive si la collection « archive » est vide ou absente", async () => {
+    vi.mocked(useArchiveProducts).mockReturnValue({
+      data: null,
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    const container = await renderPage();
+    expect(container.textContent).not.toContain("Anciens drops et pièces limitées.");
+    expect(container.querySelector('a[href="/collection/archive"]')).toBeNull();
+  });
+});
+
+describe("HomePage - Bande d'informations pratiques", () => {
+  it("affiche chaque élément de la bande d'infos selon sa donnée", async () => {
+    vi.mocked(useStoreSettings).mockReturnValue({
+      data: {
+        store_name: "JACOB DE JESUS",
+        tagline: null,
+        description: null,
+        logo_url: null,
+        banner_url: null,
+        banner_mobile_url: null,
+        email: null,
+        phone: null,
+        address: null,
+        city: "Abidjan",
+        country: "Côte d'Ivoire",
+        currency: "XOF",
+        social_links: {},
+        about_text: null,
+        about_image_url: null,
+        legal_mentions: null,
+        cgv: null,
+        privacy_policy: null,
+        announcement_text: null,
+        whatsapp_number: "+2250102030405",
+        latitude: null,
+        longitude: null,
+        opening_hours: null,
+        returns_policy: "Retours acceptés sous 7 jours.",
+      },
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    vi.mocked(useActiveShippingZones).mockReturnValue({
+      data: [
+        { id: "zone-1", name: "Afrique de l'Ouest", countries: ["Côte d'Ivoire", "Sénégal"], is_active: true },
+      ],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    const container = await renderPage();
+
+    const bar = container.querySelector('[aria-label="Informations pratiques"]');
+    expect(bar).not.toBeNull();
+
+    // Paiement à la livraison
+    expect(bar?.textContent).toContain("Paiement à la livraison");
+
+    // Retours (avec lien vers /retours)
+    const returnsLink = bar?.querySelector('a[href="/retours"]');
+    expect(returnsLink).not.toBeNull();
+    expect(returnsLink?.textContent).toContain("Retours");
+
+    // Livraison avec pays
+    expect(bar?.textContent).toContain("Livraison vers : Côte d'Ivoire, Sénégal");
+
+    // WhatsApp avec lien wa.me
+    const waLink = bar?.querySelector('a[href*="wa.me/2250102030405"]');
+    expect(waLink).not.toBeNull();
+    expect(waLink?.textContent).toContain("WhatsApp");
+
+    // Boutique à <ville>
+    const cityLink = bar?.querySelector('a[href="/notre-boutique"]');
+    expect(cityLink).not.toBeNull();
+    expect(cityLink?.textContent).toContain("Boutique à Abidjan");
+  });
+
+  it("masque les éléments facultatifs s'ils ne sont pas renseignés", async () => {
+    vi.mocked(useStoreSettings).mockReturnValue({
+      data: {
+        store_name: "JACOB DE JESUS",
+        tagline: null,
+        description: null,
+        logo_url: null,
+        banner_url: null,
+        banner_mobile_url: null,
+        email: null,
+        phone: null,
+        address: null,
+        city: null,
+        country: "Togo",
+        currency: "XOF",
+        social_links: {},
+        about_text: null,
+        about_image_url: null,
+        legal_mentions: null,
+        cgv: null,
+        privacy_policy: null,
+        announcement_text: null,
+        whatsapp_number: null,
+        latitude: null,
+        longitude: null,
+        opening_hours: null,
+        returns_policy: null,
+      },
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    vi.mocked(useActiveShippingZones).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    const container = await renderPage();
+    const bar = container.querySelector('[aria-label="Informations pratiques"]');
+
+    expect(bar?.querySelector('a[href="/retours"]')).toBeNull();
+    expect(bar?.textContent).not.toContain("Livraison vers :");
+    expect(bar?.querySelector('a[href*="wa.me"]')).toBeNull();
+    expect(bar?.querySelector('a[href="/notre-boutique"]')).toBeNull();
   });
 });
 

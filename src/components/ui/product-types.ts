@@ -1,3 +1,13 @@
+export interface ProductCardVariant {
+  id: string;
+  size: string | null;
+  color: string | null;
+  sku?: string;
+  stock: number;
+  price?: number | null;
+  currency?: string;
+}
+
 export interface ProductCardData {
   id: string;
   slug?: string;
@@ -14,6 +24,8 @@ export interface ProductCardData {
   badge?: "new" | "sale" | "soldout" | null;
   isSoldOut?: boolean;
   isFavorite?: boolean;
+  variants?: ProductCardVariant[];
+  createdAt?: string;
 }
 
 export interface ProductCardProps {
@@ -21,4 +33,5 @@ export interface ProductCardProps {
   onSizeSelect?: (productId: string, size: string) => void;
   selectedSize?: string;
   onToggleFavorite?: (productId: string) => void;
+  revealDelay?: number;
 }

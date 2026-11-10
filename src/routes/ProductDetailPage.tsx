@@ -14,6 +14,8 @@ import {
   ErrorState,
   ProductCard,
   Breadcrumb,
+  Badge,
+  Carousel,
 } from "@/components/ui";
 import { SEO } from "@/components/SEO";
 import { sortSizes } from "@/lib/sizes";
@@ -57,6 +59,7 @@ export default function ProductDetailPage() {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
   const [selectionError, setSelectionError] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState(1);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -329,6 +332,28 @@ export default function ProductDetailPage() {
     });
   }, [variants, isOnlyUniqueSize, selectedSize, selectedColor]);
 
+  const maxStock = selectedVariant ? Math.max(0, selectedVariant.stock) : 99;
+
+  useEffect(() => {
+    if (selectedVariant) {
+      if (selectedVariant.stock <= 0) {
+        setQuantity(0);
+      } else {
+        setQuantity((q) => Math.min(Math.max(1, q), selectedVariant.stock));
+      }
+    } else {
+      setQuantity(1);
+    }
+  }, [selectedVariant]);
+
+  const handleDecrementQty = () => {
+    setQuantity((q) => Math.max(1, q - 1));
+  };
+
+  const handleIncrementQty = () => {
+    setQuantity((q) => Math.min(maxStock > 0 ? maxStock : 1, q + 1));
+  };
+
   // Disparition du message d'erreur dès que la sélection change
   useEffect(() => {
     setSelectionError(null);
@@ -416,6 +441,7 @@ export default function ProductDetailPage() {
         unit_price: result.variant.price ?? product.price,
         currency: result.variant.currency || product.currency || "XOF",
         stock: result.variant.stock,
+        quantity: Math.max(1, quantity),
       });
       openCart();
     } finally {
@@ -453,6 +479,7 @@ export default function ProductDetailPage() {
         unit_price: result.variant.price ?? product.price,
         currency: result.variant.currency || product.currency || "XOF",
         stock: result.variant.stock,
+        quantity: Math.max(1, quantity),
       });
       navigate("/commande");
     } finally {
@@ -736,6 +763,9 @@ export default function ProductDetailPage() {
                 {formatPrice(product.compare_at_price!)}
               </span>
             )}
+            {hasDiscount && (
+              <Badge variant="sale">SOLDE</Badge>
+            )}
           </div>
 
           {/* Description */}
@@ -845,6 +875,38 @@ export default function ProductDetailPage() {
             </div>
           )}
 
+          {/* Sélecteur de quantité (plus, moins, borné au stock) */}
+          <div className={styles.selectorGroup}>
+            <span className={styles.selectorTitle}>Quantité</span>
+            <div className={styles.quantityPicker}>
+              <button
+                type="button"
+                className={styles.quantityBtn}
+                onClick={handleDecrementQty}
+                disabled={quantity <= 1 || maxStock <= 0}
+                aria-label="Diminuer la quantité"
+              >
+                -
+              </button>
+              <span
+                className={styles.quantityValue}
+                aria-live="polite"
+                data-testid="quantity-value"
+              >
+                {quantity}
+              </span>
+              <button
+                type="button"
+                className={styles.quantityBtn}
+                onClick={handleIncrementQty}
+                disabled={quantity >= maxStock || maxStock <= 0}
+                aria-label="Augmenter la quantité"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
           {/* Boutons d'action desktop */}
           <div className={styles.actionButtons}>
             <Button
@@ -884,9 +946,9 @@ export default function ProductDetailPage() {
             )}
           </div>
 
-          {/* Rubriques dépliables : Détails, Entretien, Livraison et retours */}
+          {/* Rubriques dépliables : Détails, Entretien, Livraison, Retours */}
           <div className={styles.accordions}>
-            {product.description && (
+            {Boolean(product.description && product.description.trim()) && (
               <details className={styles.accordion} open>
                 <summary className={styles.accordionSummary}>
                   <span>Détails</span>
@@ -898,7 +960,10 @@ export default function ProductDetailPage() {
               </details>
             )}
 
-            {Boolean((product as any).care_instructions || (product as any).entretien) && (
+            {Boolean(
+              ((product as any).care_instructions && (product as any).care_instructions.trim()) ||
+              ((product as any).entretien && (product as any).entretien.trim())
+            ) && (
               <details className={styles.accordion}>
                 <summary className={styles.accordionSummary}>
                   <span>Entretien</span>
@@ -910,10 +975,25 @@ export default function ProductDetailPage() {
               </details>
             )}
 
-            {Boolean(storeSettings?.returns_policy) && (
+            {Boolean(
+              ((storeSettings as any)?.shipping_policy && (storeSettings as any).shipping_policy.trim()) ||
+              ((product as any)?.shipping_info && (product as any).shipping_info.trim())
+            ) && (
               <details className={styles.accordion}>
                 <summary className={styles.accordionSummary}>
-                  <span>Livraison et retours</span>
+                  <span>Livraison</span>
+                  <span className={styles.accordionIcon} aria-hidden="true">+</span>
+                </summary>
+                <div className={styles.accordionContent}>
+                  <p>{(storeSettings as any)?.shipping_policy || (product as any)?.shipping_info}</p>
+                </div>
+              </details>
+            )}
+
+            {Boolean(storeSettings?.returns_policy && storeSettings.returns_policy.trim()) && (
+              <details className={styles.accordion}>
+                <summary className={styles.accordionSummary}>
+                  <span>Retours</span>
                   <span className={styles.accordionIcon} aria-hidden="true">+</span>
                 </summary>
                 <div className={styles.accordionContent}>
@@ -960,11 +1040,11 @@ export default function ProductDetailPage() {
         </div>
       )}
 
-      {/* 3. Section « À associer » */}
+      {/* 3. Section « À associer » dans Carousel */}
       {complementaryProducts.length > 0 && (
         <section className={styles.similarSection}>
           <h2 className={styles.similarTitle}>{t("product.complementary")}</h2>
-          <div className={styles.similarGrid}>
+          <Carousel ariaLabel="Produits associés">
             {complementaryProducts.map((p) => {
               const cardData: ProductCardData = {
                 id: p.id,
@@ -982,7 +1062,7 @@ export default function ProductDetailPage() {
               };
               return <ProductCard key={p.id} product={cardData} />;
             })}
-          </div>
+          </Carousel>
         </section>
       )}
 

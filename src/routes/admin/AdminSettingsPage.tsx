@@ -11,9 +11,15 @@ import {
   MapPin,
   Coins,
   RefreshCw,
+  ArrowUp,
+  ArrowDown,
+  Eye,
+  EyeOff,
+  Images,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { resizeImage, resizeImageToMax1600 } from "@/lib/admin-utils";
+import type { HomeSlide } from "@/lib/db-types";
 import { useToast } from "@/components/ui/Toast";
 import styles from "./AdminSettingsPage.module.css";
 
@@ -96,11 +102,16 @@ export default function AdminSettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [bannerWarning, setBannerWarning] = useState<string | null>(null);
+  const [slides, setSlides] = useState<HomeSlide[]>([]);
+  const [uploadingSlideSide, setUploadingSlideSide] = useState<"left" | "right" | null>(null);
+  const [slideWarning, setSlideWarning] = useState<string | null>(null);
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const bannerMobileInputRef = useRef<HTMLInputElement>(null);
   const aboutImageInputRef = useRef<HTMLInputElement>(null);
+  const leftSlidesInputRef = useRef<HTMLInputElement>(null);
+  const rightSlidesInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function loadSettings() {
@@ -157,6 +168,15 @@ export default function AdminSettingsPage() {
 
         if (ratesData) {
           setRatesLastUpdated(ratesData.mis_a_jour);
+        }
+
+        const { data: slidesData } = await supabase
+          .from("home_slides")
+          .select("*")
+          .order("sort_order", { ascending: true });
+
+        if (slidesData) {
+          setSlides(slidesData as HomeSlide[]);
         }
       } catch (e: unknown) {
         console.error("Erreur de chargement des réglages", e);
@@ -332,6 +352,215 @@ export default function AdminSettingsPage() {
       else if (type === "banner") setUploadingBanner(false);
       else if (type === "banner_mobile") setUploadingBannerMobile(false);
       else setUploadingAboutImage(false);
+    }
+  };
+
+  const handleUploadSlides = async (
+    files: FileList | null,
+    side: "left" | "right"
+  ) => {
+    if (!files || files.length === 0) return;
+    try {
+      setUploadingSlideSide(side);
+      setSlideWarning(null);
+
+      const fileArr = Array.from(files);
+      let warningDetected = false;
+
+      // Vérification non bloquante des dimensions
+      for (const file of fileArr) {
+        await new Promise<void>((resolve) => {
+          const testImg = new Image();
+          const testUrl = URL.createObjectURL(file);
+          testImg.onload = () => {
+            URL.revokeObjectURL(testUrl);
+            const w = testImg.naturalWidth || testImg.width;
+            const h = testImg.naturalHeight || testImg.height;
+            if (h < w || h < 1000) {
+              warningDetected = true;
+            }
+            resolve();
+          };
+          testImg.onerror = () => {
+            URL.revokeObjectURL(testUrl);
+            resolve();
+          };
+          testImg.src = testUrl;
+        });
+      }
+
+      if (warningDetected) {
+        setSlideWarning(
+          "Photo verticale d'au moins 1000 px de haut recommandée."
+        );
+      }
+
+      let currentActiveCount = slides.filter(
+        (s) => s.side === side && s.is_active !== false
+      ).length;
+
+      const sideSlides = slides.filter((s) => s.side === side);
+      let maxOrder = sideSlides.reduce((max, s) => Math.max(max, s.sort_order), -1);
+
+      const newSlides: HomeSlide[] = [];
+
+      for (const file of fileArr) {
+        const resizedBlob = await resizeImage(file, {
+          maxDimension: 1600,
+          quality: 0.9,
+        });
+
+        const ext = file.type === "image/png" ? "png" : "webp";
+        const fileName = `${side}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.${ext}`;
+        const filePath = `home-slides/${fileName}`;
+
+        const { error: uploadErr } = await supabase.storage
+          .from("store-assets")
+          .upload(filePath, resizedBlob, {
+            contentType: resizedBlob.type,
+            upsert: true,
+          });
+
+        if (uploadErr) throw uploadErr;
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("store-assets").getPublicUrl(filePath);
+
+        const shouldBeActive = currentActiveCount < 6;
+        if (shouldBeActive) {
+          currentActiveCount += 1;
+        }
+
+        const defaultAlt =
+          file.name.replace(/\.[^/.]+$/, "").trim() || "Photo d'accueil";
+        maxOrder += 1;
+
+        const { data: inserted, error: insertErr } = await supabase
+          .from("home_slides")
+          .insert({
+            image_url: publicUrl,
+            alt_text: defaultAlt,
+            side,
+            sort_order: maxOrder,
+            is_active: shouldBeActive,
+          })
+          .select()
+          .single();
+
+        if (insertErr) throw insertErr;
+        if (inserted) newSlides.push(inserted as HomeSlide);
+      }
+
+      setSlides((prev) => [...prev, ...newSlides]);
+      showToast(`${fileArr.length} photo(s) ajoutée(s).`, "success");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Erreur lors de l'envoi des photos.";
+      showToast(msg, "error");
+    } finally {
+      setUploadingSlideSide(null);
+    }
+  };
+
+  const handleToggleSlideActive = async (slide: HomeSlide) => {
+    const nextActive = !slide.is_active;
+    if (nextActive) {
+      const activeCount = slides.filter(
+        (s) => s.side === slide.side && s.is_active !== false && s.id !== slide.id
+      ).length;
+      if (activeCount >= 6) {
+        showToast("Maximum 6 photos actives par côté.", "error");
+        return;
+      }
+    }
+
+    setSlides((prev) =>
+      prev.map((s) => (s.id === slide.id ? { ...s, is_active: nextActive } : s))
+    );
+
+    const { error: err } = await supabase
+      .from("home_slides")
+      .update({ is_active: nextActive })
+      .eq("id", slide.id);
+
+    if (err) {
+      showToast(err.message, "error");
+      setSlides((prev) =>
+        prev.map((s) => (s.id === slide.id ? { ...s, is_active: slide.is_active } : s))
+      );
+    } else {
+      showToast(
+        nextActive ? "Photo activée sur l'accueil." : "Photo masquée de l'accueil.",
+        "success"
+      );
+    }
+  };
+
+  const handleUpdateSlideAlt = async (id: string, newAlt: string) => {
+    const trimmed = newAlt.trim();
+    if (!trimmed) {
+      showToast("Le texte alternatif est obligatoire.", "error");
+      return;
+    }
+
+    setSlides((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, alt_text: trimmed } : s))
+    );
+
+    const { error: err } = await supabase
+      .from("home_slides")
+      .update({ alt_text: trimmed })
+      .eq("id", id);
+
+    if (err) {
+      showToast("Erreur lors de la mise à jour du texte alternatif.", "error");
+    } else {
+      showToast("Texte alternatif mis à jour.", "success");
+    }
+  };
+
+  const handleMoveSlide = async (slide: HomeSlide, direction: "up" | "down") => {
+    const sideSlides = slides
+      .filter((s) => s.side === slide.side)
+      .sort((a, b) => a.sort_order - b.sort_order);
+
+    const idx = sideSlides.findIndex((s) => s.id === slide.id);
+    if (idx === -1) return;
+    const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= sideSlides.length) return;
+
+    const targetSlide = sideSlides[targetIdx];
+    const currentOrder = slide.sort_order;
+    const targetOrder = targetSlide.sort_order;
+
+    setSlides((prev) =>
+      prev.map((s) => {
+        if (s.id === slide.id) return { ...s, sort_order: targetOrder };
+        if (s.id === targetSlide.id) return { ...s, sort_order: currentOrder };
+        return s;
+      })
+    );
+
+    await Promise.all([
+      supabase
+        .from("home_slides")
+        .update({ sort_order: targetOrder })
+        .eq("id", slide.id),
+      supabase
+        .from("home_slides")
+        .update({ sort_order: currentOrder })
+        .eq("id", targetSlide.id),
+    ]);
+  };
+
+  const handleDeleteSlide = async (id: string) => {
+    if (!window.confirm("Supprimer cette photo d'accueil ?")) return;
+    setSlides((prev) => prev.filter((s) => s.id !== id));
+    const { error: err } = await supabase.from("home_slides").delete().eq("id", id);
+    if (err) {
+      showToast("Erreur lors de la suppression de la photo.", "error");
+    } else {
+      showToast("Photo supprimée.", "success");
     }
   };
 
@@ -675,6 +904,156 @@ export default function AdminSettingsPage() {
                   Photo verticale 1080 × 1350 px minimum, sujet au centre.
                 </span>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Section : Photos d'accueil */}
+        <div className={styles.sectionCard}>
+          <div className={styles.sectionHeader}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Images size={18} color="var(--color-brand)" />
+              <h2 className={styles.sectionTitle}>Photos d'accueil</h2>
+            </div>
+            <p className={styles.sectionDesc}>
+              Deux cadres photo verticaux alternés (6 photos actives maximum par cadre, ratio portrait recommandé).
+            </p>
+          </div>
+
+          <div className={styles.sectionBody}>
+            {slideWarning && (
+              <div className={styles.warningBox} role="alert">
+                {slideWarning}
+              </div>
+            )}
+
+            <div className={styles.slidesGrid}>
+              {(["left", "right"] as const).map((side) => {
+                const sideLabel = side === "left" ? "Cadre gauche" : "Cadre droit";
+                const sideSlides = slides
+                  .filter((s) => s.side === side)
+                  .sort((a, b) => a.sort_order - b.sort_order);
+                const activeCount = sideSlides.filter((s) => s.is_active !== false).length;
+                const inputRef = side === "left" ? leftSlidesInputRef : rightSlidesInputRef;
+                const isUploading = uploadingSlideSide === side;
+
+                return (
+                  <div key={side} className={styles.sideColumn}>
+                    <div className={styles.sideHeader}>
+                      <div>
+                        <h3 className={styles.sideTitle}>{sideLabel}</h3>
+                        <span className={styles.sideCounter}>
+                          {activeCount} / 6 active{activeCount > 1 ? "s" : ""}
+                        </span>
+                      </div>
+                      <input
+                        ref={inputRef}
+                        type="file"
+                        multiple
+                        accept="image/jpeg,image/png,image/webp"
+                        className={styles.fileInputHidden}
+                        onChange={(e) => {
+                          handleUploadSlides(e.target.files, side);
+                          e.target.value = "";
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className={styles.sideUploadBtn}
+                        disabled={isUploading}
+                        onClick={() => inputRef.current?.click()}
+                      >
+                        <Upload size={14} />
+                        <span>{isUploading ? "Envoi…" : "Ajouter des photos"}</span>
+                      </button>
+                    </div>
+
+                    <div className={styles.slideList}>
+                      {sideSlides.length === 0 ? (
+                        <p className={styles.slideEmpty}>
+                          Aucune photo pour le {sideLabel.toLowerCase()}.
+                        </p>
+                      ) : (
+                        sideSlides.map((slide, idx) => (
+                          <div key={slide.id} className={styles.slideCard}>
+                            <img
+                              src={slide.image_url}
+                              alt={slide.alt_text}
+                              className={styles.slideThumb}
+                            />
+                            <div className={styles.slideInfo}>
+                              <div className={styles.slideTopMeta}>
+                                <span
+                                  className={
+                                    slide.is_active
+                                      ? styles.slideBadgeActive
+                                      : styles.slideBadgeHidden
+                                  }
+                                >
+                                  {slide.is_active ? "Active" : "Masquée"}
+                                </span>
+                              </div>
+                              <input
+                                type="text"
+                                required
+                                aria-label={`Texte alternatif pour ${slide.alt_text || "photo"}`}
+                                value={slide.alt_text}
+                                placeholder="Texte alternatif (obligatoire) *"
+                                className={styles.slideAltInput}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setSlides((prev) =>
+                                    prev.map((s) =>
+                                      s.id === slide.id ? { ...s, alt_text: val } : s
+                                    )
+                                  );
+                                }}
+                                onBlur={(e) => handleUpdateSlideAlt(slide.id, e.target.value)}
+                              />
+                            </div>
+                            <div className={styles.slideActions}>
+                              <button
+                                type="button"
+                                title="Monter"
+                                disabled={idx === 0}
+                                className={styles.slideActionBtn}
+                                onClick={() => handleMoveSlide(slide, "up")}
+                              >
+                                <ArrowUp size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                title="Descendre"
+                                disabled={idx === sideSlides.length - 1}
+                                className={styles.slideActionBtn}
+                                onClick={() => handleMoveSlide(slide, "down")}
+                              >
+                                <ArrowDown size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                title={slide.is_active ? "Masquer" : "Activer"}
+                                className={styles.slideActionBtn}
+                                onClick={() => handleToggleSlideActive(slide)}
+                              >
+                                {slide.is_active ? <EyeOff size={14} /> : <Eye size={14} />}
+                              </button>
+                              <button
+                                type="button"
+                                title="Supprimer"
+                                className={`${styles.slideActionBtn} ${styles.slideActionBtnDelete}`}
+                                onClick={() => handleDeleteSlide(slide.id)}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

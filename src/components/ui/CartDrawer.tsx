@@ -32,9 +32,9 @@ export function CartDrawer() {
           <div className={styles.alertBanner}>
             <AlertTriangle size={16} />
             <span>
-              {t("cart.alertChange")}{" "}
+              {t("cart.alertChange", "Certains articles de votre panier ont été modifiés.")}{" "}
               <button className={styles.alertDismiss} onClick={clearAlerts}>
-                {t("cart.understood")}
+                {t("cart.understood", "J'ai compris")}
               </button>
             </span>
           </div>
@@ -46,7 +46,7 @@ export function CartDrawer() {
             <div className={styles.skeletons}>
               {[1, 2, 3].map((k) => (
                 <div key={k} className={styles.skeletonRow}>
-                  <Skeleton variant="rect" width="72px" height="96px" />
+                  <Skeleton variant="rect" width="72px" height="90px" />
                   <div className={styles.skeletonText}>
                     <Skeleton variant="text" width="70%" height="16px" />
                     <Skeleton variant="text" width="40%" height="14px" />
@@ -57,23 +57,23 @@ export function CartDrawer() {
             </div>
           ) : error ? (
             <ErrorState
-              title={t("cart.loadError")}
+              title={t("cart.loadError", "Erreur de chargement")}
               message={error}
               action={
                 <Button variant="outline" size="sm" onClick={() => void retry()}>
-                  {t("common.retry")}
+                  {t("common.retry", "Réessayer")}
                 </Button>
               }
             />
           ) : items.length === 0 ? (
             <EmptyState
               icon={<ShoppingBag size={40} strokeWidth={1} />}
-              title={t("cart.emptyTitle")}
-              description={t("cart.emptyDesc")}
+              title={t("cart.emptyTitle", "Votre sac est vide")}
+              description={t("cart.emptyDesc", "Ajoutez des pièces depuis la boutique pour commencer vos achats.")}
               action={
                 <Link to="/boutique" onClick={closeCart}>
                   <Button variant="primary" size="md">
-                    {t("cart.goToShop")}
+                    {t("cart.goToShop", "DÉCOUVRIR LA BOUTIQUE")}
                   </Button>
                 </Link>
               }
@@ -109,10 +109,10 @@ export function CartDrawer() {
                       )}
 
                       {item.alert === "removed" && (
-                        <span className={styles.alertTag}>{t("cart.itemRemoved")}</span>
+                        <span className={styles.alertTag}>{t("cart.itemRemoved", "Article retiré")}</span>
                       )}
                       {item.alert === "out_of_stock" && (
-                        <span className={styles.alertTag}>{t("product.soldOut")}</span>
+                        <span className={styles.alertTag}>{t("product.soldOut", "Épuisé")}</span>
                       )}
                       {isChanged && item.new_price != null && (
                         <span className={styles.alertTagPrice}>
@@ -128,7 +128,7 @@ export function CartDrawer() {
                               className={styles.qtyBtn}
                               onClick={() => void updateQuantity(item.id, item.quantity - 1)}
                               disabled={item.quantity <= 1}
-                              aria-label="Diminuer"
+                              aria-label="Diminuer la quantité"
                             >
                               <Minus size={12} />
                             </button>
@@ -137,7 +137,7 @@ export function CartDrawer() {
                               className={styles.qtyBtn}
                               onClick={() => void updateQuantity(item.id, item.quantity + 1)}
                               disabled={item.quantity >= item.stock}
-                              aria-label="Augmenter"
+                              aria-label="Augmenter la quantité"
                             >
                               <Plus size={12} />
                             </button>
@@ -149,7 +149,7 @@ export function CartDrawer() {
                     <button
                       className={styles.removeBtn}
                       onClick={() => void removeItem(item.id)}
-                      aria-label={t("cart.remove")}
+                      aria-label={t("cart.remove", "Supprimer")}
                     >
                       <Trash2 size={15} />
                     </button>
@@ -164,20 +164,28 @@ export function CartDrawer() {
         {items.length > 0 && !isLoading && !error && (
           <div className={styles.footer}>
             <div className={styles.totalRow}>
-              <span className={styles.totalLabel}>{t("cart.subtotal")}</span>
+              <span className={styles.totalLabel}>{t("cart.subtotal", "Sous-total")}</span>
               <span className={styles.totalAmount}>{formatPrice(subtotal)}</span>
             </div>
+            <div className={styles.shippingRow}>
+              <span className={styles.shippingLabel}>{t("checkout.shippingFee", "Livraison")}</span>
+              <span className={styles.shippingValue}>{t("cart.shippingCalculated", "Calculée à la commande")}</span>
+            </div>
+            <div className={styles.grandTotalRow}>
+              <span className={styles.grandTotalLabel}>{t("cart.estimatedTotal", "Total")}</span>
+              <span className={styles.grandTotalAmount}>{formatPrice(subtotal)}</span>
+            </div>
             <p className={styles.shippingNote}>
-              {t("cart.shippingCalculated")}
+              {t("cart.finalAmountNote", "Taxes et frais de livraison calculés lors du paiement.")}
             </p>
-            <Link to="/panier" onClick={closeCart} className={styles.viewCartLink}>
-              <Button variant="outline" size="lg" style={{ width: "100%", marginBottom: "var(--space-2)" }}>
-                {t("cart.viewCart")}
-              </Button>
-            </Link>
             <Link to="/commande" onClick={closeCart} className={styles.checkoutLink}>
               <Button variant="primary" size="lg" style={{ width: "100%" }}>
-                {t("cart.checkout")}
+                PASSER LA COMMANDE
+              </Button>
+            </Link>
+            <Link to="/panier" onClick={closeCart} className={styles.viewCartLink}>
+              <Button variant="outline" size="md" style={{ width: "100%" }}>
+                {t("cart.viewCart", "Voir le panier")}
               </Button>
             </Link>
           </div>

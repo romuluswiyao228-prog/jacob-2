@@ -17,6 +17,7 @@
   scrollbar-width: none;
   scroll-behavior: smooth;
   padding: 4px 1px var(--space-2);
+  cursor: grab;
 }
 
 .track::-webkit-scrollbar {
@@ -26,6 +27,13 @@
 .track:focus-visible {
   outline: 2px solid var(--color-border);
   outline-offset: 4px;
+}
+
+.track.isDragging {
+  cursor: grabbing;
+  user-select: none;
+  scroll-snap-type: none;
+  scroll-behavior: auto;
 }
 
 /* Card item widths */
@@ -83,7 +91,6 @@
     background: var(--color-surface);
     border: var(--border-width) solid var(--color-border);
     color: var(--color-text);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
     cursor: pointer;
     transition: background var(--transition-base),
       color var(--transition-base),
@@ -101,15 +108,39 @@
 
   .arrowBtn:hover:not(:disabled) {
     background: var(--color-brand);
-    color: var(--color-bg);
-    transform: translateY(-50%) scale(1.05);
+    color: var(--color-text);
   }
 
   .arrowBtn:disabled {
-    opacity: 0.2;
+    opacity: 0.25;
     cursor: not-allowed;
-    pointer-events: none;
   }
+}
+
+/* Compteur de progression : 01 / 08 */
+.counter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-neutral-600);
+  margin-top: var(--space-3);
+  letter-spacing: var(--tracking-wider);
+}
+
+.counterCurrent {
+  color: var(--color-text);
+  font-weight: var(--weight-bold);
+}
+
+.counterSep {
+  color: var(--color-neutral-400);
+}
+
+.counterTotal {
+  color: var(--color-neutral-500);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -117,8 +148,7 @@
     scroll-behavior: auto;
   }
 
-  .arrowBtn:hover:not(:disabled) {
-    transform: translateY(-50%);
+  .arrowBtn {
+    transition: none;
   }
 }
-

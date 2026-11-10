@@ -6,6 +6,7 @@ import type {
   Collection,
   PublicStoreSettings,
   BestSeller,
+  HomeSlide,
 } from "@/lib/db-types";
 
 type QueryState<T> = {
@@ -70,7 +71,7 @@ export function useStoreSettings(): QueryState<PublicStoreSettings> {
   });
 }
 
-export function useNewProducts(limit = 8): QueryState<ProductWithImage[]> {
+export function useNewProducts(limit = 12): QueryState<ProductWithImage[]> {
   return useQuery(async () => {
     const { data: products, error } = await supabase
       .from("products")
@@ -83,7 +84,7 @@ export function useNewProducts(limit = 8): QueryState<ProductWithImage[]> {
     if (!products || products.length === 0) return { data: [], error: null };
 
     const productIds = products.map((p) => p.id);
-    const [{ data: images }, { data: categories }] = await Promise.all([
+    const [{ data: images }, { data: categories }, { data: variants }] = await Promise.all([
       supabase
         .from("product_images")
         .select("id, product_id, url, alt_text, sort_order, is_primary")
@@ -94,6 +95,10 @@ export function useNewProducts(limit = 8): QueryState<ProductWithImage[]> {
         .from("categories")
         .select("name, slug")
         .in("id", products.map((p) => p.category_id).filter(Boolean) as string[]),
+      supabase
+        .from("product_variants")
+        .select("id, product_id, size, color, sku, stock, price, currency")
+        .in("product_id", productIds),
     ]);
 
     const imageMap = new Map<string, NonNullable<typeof images>[number]>();
@@ -103,9 +108,11 @@ export function useNewProducts(limit = 8): QueryState<ProductWithImage[]> {
       }
     }
 
-    const categoryMap = new Map<string, NonNullable<typeof categories>[number]>();
-    for (const cat of categories ?? []) {
-      categoryMap.set(cat.slug, cat);
+    const variantMap = new Map<string, NonNullable<typeof variants>[number][]>();
+    for (const v of variants ?? []) {
+      const list = variantMap.get(v.product_id) ?? [];
+      list.push(v);
+      variantMap.set(v.product_id, list);
     }
 
     const enriched: ProductWithImage[] = products.map((p) => {
@@ -117,12 +124,14 @@ export function useNewProducts(limit = 8): QueryState<ProductWithImage[]> {
         ...p,
         primary_image: img,
         category: cat,
+        variants: variantMap.get(p.id) ?? [],
       };
     });
 
     return { data: enriched, error: null };
   }, [limit]);
 }
+
 
 export function useFeaturedProducts(limit = 8): QueryState<ProductWithImage[]> {
   return useQuery(async () => {
@@ -161,6 +170,7 @@ export function useFeaturedProducts(limit = 8): QueryState<ProductWithImage[]> {
     return { data: enriched, error: null };
   }, [limit]);
 }
+
 
 export function useBestSellers(limit = 8): QueryState<BestSeller[]> {
   return useQuery(async () => {
@@ -221,7 +231,8 @@ export function useBestSellers(limit = 8): QueryState<BestSeller[]> {
   }, [limit]);
 }
 
-export function usePromoProducts(limit = 8): QueryState<ProductWithImage[]> {
+
+export function usePromoProducts(limit = 12): QueryState<ProductWithImage[]> {
   return useQuery(async () => {
     const { data: products, error } = await supabase
       .from("products")
@@ -235,12 +246,18 @@ export function usePromoProducts(limit = 8): QueryState<ProductWithImage[]> {
     if (!products || products.length === 0) return { data: [], error: null };
 
     const productIds = products.map((p) => p.id);
-    const { data: images } = await supabase
-      .from("product_images")
-      .select("id, product_id, url, alt_text, sort_order, is_primary")
-      .in("product_id", productIds)
-      .order("is_primary", { ascending: false })
-      .order("sort_order", { ascending: true });
+    const [{ data: images }, { data: variants }] = await Promise.all([
+      supabase
+        .from("product_images")
+        .select("id, product_id, url, alt_text, sort_order, is_primary")
+        .in("product_id", productIds)
+        .order("is_primary", { ascending: false })
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("product_variants")
+        .select("id, product_id, size, color, sku, stock, price, currency")
+        .in("product_id", productIds),
+    ]);
 
     const imageMap = new Map<string, NonNullable<typeof images>[number]>();
     for (const img of images ?? []) {
@@ -249,14 +266,194 @@ export function usePromoProducts(limit = 8): QueryState<ProductWithImage[]> {
       }
     }
 
+    const variantMap = new Map<string, NonNullable<typeof variants>[number][]>();
+    for (const v of variants ?? []) {
+      const list = variantMap.get(v.product_id) ?? [];
+      list.push(v);
+      variantMap.set(v.product_id, list);
+    }
+
     const enriched: ProductWithImage[] = products.map((p) => ({
       ...p,
       primary_image: imageMap.get(p.id) ?? null,
       category: null,
+      variants: variantMap.get(p.id) ?? [],
     }));
 
     return { data: enriched, error: null };
   }, [limit]);
+}
+
+
+export function useAllProducts(limit = 12): QueryState<ProductWithImage[]> {
+  return useQuery(async () => {
+    const { data: products, error } = await supabase
+      .from("products")
+      .select("id, name, slug, description, price, compare_at_price, currency, category_id, is_archived, is_featured, sort_order, created_at")
+      .eq("is_archived", false)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) return { data: null, error: error.message };
+    if (!products || products.length === 0) return { data: [], error: null };
+
+    const productIds = products.map((p) => p.id);
+    const [{ data: images }, { data: variants }] = await Promise.all([
+      supabase
+        .from("product_images")
+        .select("id, product_id, url, alt_text, sort_order, is_primary")
+        .in("product_id", productIds)
+        .order("is_primary", { ascending: false })
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("product_variants")
+        .select("id, product_id, size, color, sku, stock, price, currency")
+        .in("product_id", productIds),
+    ]);
+
+    const imageMap = new Map<string, NonNullable<typeof images>[number]>();
+    for (const img of images ?? []) {
+      if (!imageMap.has(img.product_id)) {
+        imageMap.set(img.product_id, img);
+      }
+    }
+
+    const variantMap = new Map<string, NonNullable<typeof variants>[number][]>();
+    for (const v of variants ?? []) {
+      const list = variantMap.get(v.product_id) ?? [];
+      list.push(v);
+      variantMap.set(v.product_id, list);
+    }
+
+    const enriched: ProductWithImage[] = products.map((p) => ({
+      ...p,
+      primary_image: imageMap.get(p.id) ?? null,
+      category: null,
+      variants: variantMap.get(p.id) ?? [],
+    }));
+
+    return { data: enriched, error: null };
+  }, [limit]);
+}
+
+
+export interface ArchiveCollectionData {
+  collection: Collection;
+  products: ProductWithImage[];
+}
+
+export function useArchiveProducts(limit = 12): QueryState<ArchiveCollectionData | null> {
+  return useQuery(async () => {
+    const now = new Date().toISOString();
+    const { data: collections, error: colError } = await supabase
+      .from("collections")
+      .select("id, name, slug, description, image_url, is_active, starts_at, ends_at")
+      .eq("is_active", true)
+      .ilike("slug", "archive")
+      .limit(1);
+
+    if (colError || !collections || collections.length === 0) {
+      return { data: null, error: null };
+    }
+
+    const archiveCol = collections[0];
+    if (archiveCol.starts_at && archiveCol.starts_at > now) {
+      return { data: null, error: null };
+    }
+    if (archiveCol.ends_at && archiveCol.ends_at < now) {
+      return { data: null, error: null };
+    }
+
+    const { data: colProds, error: cpError } = await supabase
+      .from("collection_products")
+      .select("product_id, sort_order")
+      .eq("collection_id", archiveCol.id)
+      .order("sort_order", { ascending: true })
+      .limit(limit);
+
+    if (cpError || !colProds || colProds.length === 0) {
+      return { data: null, error: null };
+    }
+
+    const productIds = colProds.map((cp) => cp.product_id);
+    const { data: products, error: pError } = await supabase
+      .from("products")
+      .select("id, name, slug, description, price, compare_at_price, currency, category_id, is_archived, is_featured, sort_order, created_at")
+      .in("id", productIds)
+      .eq("is_archived", false);
+
+    if (pError || !products || products.length === 0) {
+      return { data: null, error: null };
+    }
+
+    const [{ data: images }, { data: variants }] = await Promise.all([
+      supabase
+        .from("product_images")
+        .select("id, product_id, url, alt_text, sort_order, is_primary")
+        .in("product_id", productIds)
+        .order("is_primary", { ascending: false })
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("product_variants")
+        .select("id, product_id, size, color, sku, stock, price, currency")
+        .in("product_id", productIds),
+    ]);
+
+    const imageMap = new Map<string, NonNullable<typeof images>[number]>();
+    for (const img of images ?? []) {
+      if (!imageMap.has(img.product_id)) {
+        imageMap.set(img.product_id, img);
+      }
+    }
+
+    const variantMap = new Map<string, NonNullable<typeof variants>[number][]>();
+    for (const v of variants ?? []) {
+      const list = variantMap.get(v.product_id) ?? [];
+      list.push(v);
+      variantMap.set(v.product_id, list);
+    }
+
+    const orderMap = new Map<string, number>();
+    colProds.forEach((cp, idx) => orderMap.set(cp.product_id, idx));
+
+    const enriched: ProductWithImage[] = products
+      .map((p) => ({
+        ...p,
+        primary_image: imageMap.get(p.id) ?? null,
+        category: null,
+        variants: variantMap.get(p.id) ?? [],
+      }))
+      .sort((a, b) => (orderMap.get(a.id) ?? 0) - (orderMap.get(b.id) ?? 0));
+
+    return {
+      data: {
+        collection: archiveCol,
+        products: enriched,
+      },
+      error: null,
+    };
+  }, [limit]);
+}
+
+
+export interface ActiveShippingZone {
+  id: string;
+  name: string;
+  countries: string[];
+  is_active: boolean;
+}
+
+export function useActiveShippingZones(): QueryState<ActiveShippingZone[]> {
+  return useQuery(async () => {
+    const { data, error } = await supabase
+      .from("shipping_zones")
+      .select("id, name, countries, is_active")
+      .eq("is_active", true);
+
+    if (error) return { data: null, error: error.message };
+    return { data: (data as ActiveShippingZone[]) ?? [], error: null };
+  });
 }
 
 export function useCollections(limit = 6): QueryState<Collection[]> {
@@ -275,3 +472,17 @@ export function useCollections(limit = 6): QueryState<Collection[]> {
     return { data, error: null };
   }, [limit]);
 }
+
+/** Lecture publique : lignes actives seulement (anon + authenticated). */
+export function useHomeSlides(): QueryState<HomeSlide[]> {
+  return useQuery(async () => {
+    const { data, error } = await supabase
+      .from("home_slides")
+      .select("id, image_url, alt_text, side, sort_order, is_active, created_at")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true });
+    if (error) return { data: null, error: error.message };
+    return { data: (data as HomeSlide[]) ?? [], error: null };
+  });
+}
+
