@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ProductCard, Stripe, ProductCarousel, Marquee, Reveal } from "@/components/ui";
@@ -18,7 +19,7 @@ import {
 import { HomeHero } from "@/components/home/HomeHero";
 import { isValidWhatsAppNumber, whatsappLink } from "@/lib/whatsapp";
 import type { ProductCardData } from "@/components/ui";
-import type { ProductWithImage } from "@/lib/db-types";
+import type { CommunityPhoto, ProductWithImage } from "@/lib/db-types";
 import { splitWordmark, wordmarkSize } from "@/lib/wordmark";
 import styles from "./HomePage.module.css";
 
@@ -97,6 +98,10 @@ export default function HomePage() {
   } = useArchiveProducts(12);
   const { data: shippingZones } = useActiveShippingZones();
   const { data: homeSlides } = useHomeSlides();
+  const { data: communityPhotos } = useCommunityPhotos();
+  const [selectedCommunityPhoto, setSelectedCommunityPhoto] = useState<CommunityPhoto | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
   const hasCategories = (categories?.length ?? 0) > 0;
   const hasNewProducts = (newProducts?.length ?? 0) > 0;
@@ -121,6 +126,63 @@ export default function HomePage() {
   const bannerUrl = settings?.banner_url?.trim() || "";
   const bannerMobileUrl = settings?.banner_mobile_url?.trim() || "";
   const intro = settings?.tagline?.trim() || settings?.description?.trim() || "";
+  const communityItems = (communityPhotos ?? []).filter((photo) => photo.is_active && photo.consent_confirmed);
+  const communityRailItems = communityItems.length > 0
+    ? communityItems.length < 6
+      ? Array.from({ length: Math.max(2, Math.ceil(6 / communityItems.length)) }, () => communityItems).flat()
+      : communityItems
+    : [];
+  const communityLink = Object.values(settings?.social_links ?? {}).find((value) => typeof value === "string" && value.trim()) ?? null;
+
+  useEffect(() => {
+    if (!selectedCommunityPhoto) return;
+    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+
+    const focusableSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+    const focusFirst = () => {
+      const container = dialogRef.current;
+      const firstFocusable = container?.querySelector<HTMLElement>(focusableSelector);
+      firstFocusable?.focus();
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSelectedCommunityPhoto(null);
+        return;
+      }
+
+      if (event.key !== "Tab" || !dialogRef.current) return;
+
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(focusableSelector)
+      ).filter((element) => !element.hasAttribute("disabled") && element.tabIndex !== -1);
+
+      if (focusable.length === 0) {
+        event.preventDefault();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    focusFirst();
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocusedRef.current?.focus();
+    };
+  }, [selectedCommunityPhoto]);
 
   // Bande d'informations pratiques
   const activeCountries = Array.from(
@@ -234,6 +296,50 @@ export default function HomePage() {
               </span>
             </div>
           </Marquee>
+        </section>
+      )}
+
+      {communityItems.length > 0 && (
+        <section className={styles.community} aria-labelledby="community-title">
+          <div className={styles.communityHeader}>
+            <h2 id="community-title" className={styles.communityTitle}>
+              {t("home.communityTitle", "Porté par la communauté")}
+            </h2>
+            {communityLink && (
+              <a
+                href={communityLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.communityFollowLink}
+              >
+                {t("footer.followUs", "Suivez-nous")}
+              </a>
+            )}
+          </div>
+
+          <div className={styles.communityRailWrap}>
+            <Marquee speed={40} pauseOnHover pauseOnFocus className={styles.communityMarquee}>
+              <div data-testid="community-photo-rail" className={styles.communityTrack}>
+                {communityRailItems.map((photo, index) => (
+                  <button
+                    key={`${photo.id}-${index}`}
+                    type="button"
+                    className={styles.communityPhotoButton}
+                    aria-label={photo.alt_text || "Photo de la communauté"}
+                    onClick={() => setSelectedCommunityPhoto(photo)}
+                    data-testid={`community-photo-trigger-${index}`}
+                  >
+                    <img
+                      src={photo.image_url}
+                      alt={photo.alt_text || "Photo de la communauté"}
+                      className={styles.communityPhoto}
+                      loading="lazy"
+                    />
+                  </button>
+                ))}
+              </div>
+            </Marquee>
+          </div>
         </section>
       )}
 
@@ -490,6 +596,51 @@ export default function HomePage() {
             </div>
           </div>
         </Section>
+      )}
+
+      {selectedCommunityPhoto && (
+        <div
+          className={styles.communityLightboxBackdrop}
+          onClick={() => setSelectedCommunityPhoto(null)}
+          aria-hidden="true"
+        >
+          <div
+            ref={dialogRef}
+            className={styles.communityLightbox}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="community-lightbox-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className={styles.communityLightboxClose}
+              aria-label={t("common.close", "Fermer")}
+              onClick={() => setSelectedCommunityPhoto(null)}
+            >
+              ×
+            </button>
+            <img
+              src={selectedCommunityPhoto.image_url}
+              alt={selectedCommunityPhoto.alt_text || "Photo de la communauté"}
+              className={styles.communityLightboxImage}
+            />
+            <div className={styles.communityLightboxContent}>
+              <p id="community-lightbox-title" className={styles.communityLightboxCaption}>
+                {selectedCommunityPhoto.caption || selectedCommunityPhoto.alt_text}
+              </p>
+              {selectedCommunityPhoto.link_path && (
+                <Link
+                  to={selectedCommunityPhoto.link_path}
+                  className={styles.communityLightboxLink}
+                  onClick={() => setSelectedCommunityPhoto(null)}
+                >
+                  {t("home.communityViewProduct", "Voir le produit")}
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Bande signature : entre l'accueil et le pied de page */}

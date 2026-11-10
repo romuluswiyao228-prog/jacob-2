@@ -33,6 +33,7 @@ const AdminOrderDetailPage = lazy(() => import("@/routes/admin/AdminOrderDetailP
 const AdminShippingPage = lazy(() => import("@/routes/admin/AdminShippingPage"));
 const AdminPromotionsPage = lazy(() => import("@/routes/admin/AdminPromotionsPage"));
 const AdminMessagesPage = lazy(() => import("@/routes/admin/AdminMessagesPage"));
+const AdminCommunityPage = lazy(() => import("@/routes/admin/AdminCommunityPage"));
 const AdminSettingsPage = lazy(() => import("@/routes/admin/AdminSettingsPage"));
 
 const HomePage = lazy(() => import("@/routes/HomePage"));
@@ -175,6 +176,7 @@ export default function App() {
                       <Route path="livraison" element={<AdminShippingPage />} />
                       <Route path="promotions" element={<AdminPromotionsPage />} />
                       <Route path="messages" element={<AdminMessagesPage />} />
+                      <Route path="communaute" element={<AdminCommunityPage />} />
                       <Route path="reglages" element={<AdminSettingsPage />} />
                     </Route>
 

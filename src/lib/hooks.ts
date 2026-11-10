@@ -7,6 +7,7 @@ import type {
   PublicStoreSettings,
   BestSeller,
   HomeSlide,
+  CommunityPhoto,
 } from "@/lib/db-types";
 
 type QueryState<T> = {
@@ -483,6 +484,22 @@ export function useHomeSlides(): QueryState<HomeSlide[]> {
       .order("sort_order", { ascending: true });
     if (error) return { data: null, error: error.message };
     return { data: (data as HomeSlide[]) ?? [], error: null };
+  });
+}
+
+/** Lecture publique : photos actives et validées par consentement. */
+export function useCommunityPhotos(): QueryState<CommunityPhoto[]> {
+  return useQuery(async () => {
+    const { data, error } = await supabase
+      .from("community_photos")
+      .select("id, image_url, alt_text, caption, link_path, sort_order, is_active, consent_confirmed, created_at")
+      .eq("is_active", true)
+      .eq("consent_confirmed", true)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: false });
+
+    if (error) return { data: null, error: error.message };
+    return { data: (data as CommunityPhoto[]) ?? [], error: null };
   });
 }
 

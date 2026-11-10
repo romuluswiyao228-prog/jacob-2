@@ -9,6 +9,7 @@ import {
   Truck,
   Percent,
   MessageSquare,
+  Users,
   Settings,
   Menu,
   X,
@@ -35,6 +36,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Livraison", path: "/admin/livraison", icon: Truck },
   { label: "Promotions", path: "/admin/promotions", icon: Percent },
   { label: "Messages", path: "/admin/messages", icon: MessageSquare },
+  { label: "Communauté", path: "/admin/communaute", icon: Users },
   { label: "Réglages", path: "/admin/reglages", icon: Settings },
 ];
 

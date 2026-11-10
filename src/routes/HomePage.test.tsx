@@ -14,6 +14,7 @@ vi.mock("@/lib/hooks", () => ({
   useArchiveProducts: vi.fn(() => ({ data: null, isLoading: false, error: null, refetch: vi.fn() })),
   useActiveShippingZones: vi.fn(() => ({ data: [], isLoading: false, error: null, refetch: vi.fn() })),
   useHomeSlides: vi.fn(() => ({ data: [], isLoading: false, error: null, refetch: vi.fn() })),
+  useCommunityPhotos: vi.fn(() => ({ data: [], isLoading: false, error: null, refetch: vi.fn() })),
 }));
 
 vi.mock("@/lib/auth-context", () => ({
@@ -30,6 +31,7 @@ import {
   useArchiveProducts,
   useActiveShippingZones,
   useHomeSlides,
+  useCommunityPhotos,
 } from "@/lib/hooks";
 
 let roots: Root[] = [];
@@ -50,6 +52,151 @@ async function renderPage(): Promise<HTMLDivElement> {
 
   return container;
 }
+
+describe("HomePage - Porté par la communauté", () => {
+  it("masque la section si aucune photo n'est active", async () => {
+    vi.mocked(useStoreSettings).mockReturnValue({
+      data: {
+        store_name: "JACOB DE JESUS",
+        tagline: "Streetwear brutal",
+        description: null,
+        logo_url: null,
+        banner_url: null,
+        banner_mobile_url: null,
+        email: null,
+        phone: null,
+        address: null,
+        city: null,
+        country: "Togo",
+        currency: "XOF",
+        social_links: { instagram: "https://instagram.com/jacobdejesus" },
+        about_text: null,
+        about_image_url: null,
+        legal_mentions: null,
+        cgv: null,
+        privacy_policy: null,
+        announcement_text: null,
+        whatsapp_number: null,
+        latitude: null,
+        longitude: null,
+        opening_hours: null,
+        returns_policy: null,
+      },
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+    vi.mocked(useCommunityPhotos).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    const container = await renderPage();
+    expect(container.textContent).not.toContain("Porté par la communauté");
+  });
+
+  it("répète les photos quand il y a moins de 6 éléments pour remplir le rail", async () => {
+    vi.mocked(useStoreSettings).mockReturnValue({
+      data: {
+        store_name: "JACOB DE JESUS",
+        tagline: "Streetwear brutal",
+        description: null,
+        logo_url: null,
+        banner_url: null,
+        banner_mobile_url: null,
+        email: null,
+        phone: null,
+        address: null,
+        city: null,
+        country: "Togo",
+        currency: "XOF",
+        social_links: { instagram: "https://instagram.com/jacobdejesus" },
+        about_text: null,
+        about_image_url: null,
+        legal_mentions: null,
+        cgv: null,
+        privacy_policy: null,
+        announcement_text: null,
+        whatsapp_number: null,
+        latitude: null,
+        longitude: null,
+        opening_hours: null,
+        returns_policy: null,
+      },
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+    vi.mocked(useCommunityPhotos).mockReturnValue({
+      data: [
+        { id: "c1", image_url: "https://example.com/1.webp", alt_text: "Photo 1", caption: "Caption 1", link_path: null, sort_order: 1, is_active: true, consent_confirmed: true, created_at: "2026-11-10T00:00:00Z" },
+        { id: "c2", image_url: "https://example.com/2.webp", alt_text: "Photo 2", caption: "Caption 2", link_path: null, sort_order: 2, is_active: true, consent_confirmed: true, created_at: "2026-11-10T00:00:00Z" },
+      ],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    const container = await renderPage();
+    const rail = container.querySelector('[data-testid="community-photo-rail"]');
+    expect(rail).not.toBeNull();
+    expect(rail?.querySelectorAll("img").length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("ouvre une fenêtre d'agrandissement avec légende et bouton de lien quand une photo est cliquée", async () => {
+    vi.mocked(useStoreSettings).mockReturnValue({
+      data: {
+        store_name: "JACOB DE JESUS",
+        tagline: "Streetwear brutal",
+        description: null,
+        logo_url: null,
+        banner_url: null,
+        banner_mobile_url: null,
+        email: null,
+        phone: null,
+        address: null,
+        city: null,
+        country: "Togo",
+        currency: "XOF",
+        social_links: { instagram: "https://instagram.com/jacobdejesus" },
+        about_text: null,
+        about_image_url: null,
+        legal_mentions: null,
+        cgv: null,
+        privacy_policy: null,
+        announcement_text: null,
+        whatsapp_number: null,
+        latitude: null,
+        longitude: null,
+        opening_hours: null,
+        returns_policy: null,
+      },
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+    vi.mocked(useCommunityPhotos).mockReturnValue({
+      data: [
+        { id: "c1", image_url: "https://example.com/zoom.webp", alt_text: "Photo 1", caption: "Legende de test", link_path: "/produit/test", sort_order: 1, is_active: true, consent_confirmed: true, created_at: "2026-11-10T00:00:00Z" },
+      ],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    const container = await renderPage();
+    const trigger = container.querySelector('[data-testid="community-photo-trigger-0"]') as HTMLButtonElement | null;
+    expect(trigger).not.toBeNull();
+    await act(async () => trigger?.click());
+
+    const dialog = document.body.querySelector('[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    expect(dialog?.textContent).toContain("Legende de test");
+    expect(dialog?.textContent).toContain("Voir le produit");
+  });
+});
 
 describe("HomePage - Bannière et responsive picture", () => {
   beforeEach(() => {

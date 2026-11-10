@@ -138,6 +138,18 @@ export interface HomeSlide {
   created_at: string;
 }
 
+export interface CommunityPhoto {
+  id: string;
+  image_url: string;
+  alt_text: string;
+  caption: string | null;
+  link_path: string | null;
+  sort_order: number;
+  is_active: boolean;
+  consent_confirmed: boolean;
+  created_at: string;
+}
+
 export interface BestSeller {
   product_id: string;
   total_sold: number;

@@ -158,6 +158,202 @@
   outline-offset: 4px;
 }
 
+/* --- Porté par la communauté --- */
+
+.community {
+  border-top: var(--border-width) solid var(--color-border);
+  border-bottom: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+  padding: var(--space-6) 0;
+}
+
+.communityHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin: 0 auto var(--space-5);
+  max-width: 1200px;
+  padding: 0 clamp(var(--space-4), 4vw, var(--space-8));
+}
+
+.communityTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 4vw, 3.2rem);
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.communityFollowLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 var(--space-5);
+  border: var(--border-width) solid var(--color-border);
+  background: var(--color-text);
+  color: var(--color-text-inverse);
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  font-weight: var(--weight-bold);
+}
+
+.communityRailWrap {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.communityMarquee {
+  width: 100%;
+  background: var(--color-surface);
+}
+
+.communityTrack {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: max-content;
+  padding: 0 clamp(var(--space-4), 4vw, var(--space-8));
+}
+
+.communityPhotoButton {
+  position: relative;
+  flex: 0 0 auto;
+  padding: 0;
+  border: var(--border-width-thick) solid var(--color-border);
+  background: var(--color-surface);
+  cursor: pointer;
+  border-radius: 0;
+  overflow: hidden;
+  transition: transform var(--transition-base);
+}
+
+.communityPhotoButton:hover,
+.communityPhotoButton:focus-visible {
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.communityPhoto {
+  display: block;
+  width: auto;
+  height: 280px;
+  object-fit: cover;
+  aspect-ratio: 4 / 5;
+  background: var(--color-neutral-200);
+  border: 2px solid var(--color-border);
+}
+
+.communityLightboxBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: rgba(10, 10, 10, 0.78);
+  padding: var(--space-5);
+}
+
+.communityLightbox {
+  position: relative;
+  display: grid;
+  width: min(920px, 94vw);
+  max-height: 90vh;
+  background: var(--color-surface);
+  border: var(--border-width-thick) solid var(--color-border);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
+}
+
+.communityLightboxClose {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  width: 40px;
+  height: 40px;
+  border: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.communityLightboxImage {
+  display: block;
+  width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  background: var(--color-neutral-100);
+}
+
+.communityLightboxContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.communityLightboxCaption {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--color-text);
+}
+
+.communityLightboxLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 var(--space-4);
+  border: var(--border-width-thick) solid var(--color-border);
+  background: var(--color-brand);
+  color: var(--color-bg);
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  font-weight: var(--weight-bold);
+}
+
+@media (max-width: 767px) {
+  .communityHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .communityPhoto {
+    height: 200px;
+  }
+
+  .communityLightboxContent {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .communityRailWrap {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .communityTrack {
+    width: max-content;
+    scroll-snap-type: x proximity;
+  }
+
+  .communityPhotoButton {
+    scroll-snap-align: start;
+  }
+}
+
 /* --- Catégories : grille de tuiles aux bordures partagées --- */
 
 .categoryGrid {
