@@ -15,6 +15,7 @@ import {
   useArchiveProducts,
   useActiveShippingZones,
   useHomeSlides,
+  useCommunityPhotos,
 } from "@/lib/hooks";
 import { HomeHero } from "@/components/home/HomeHero";
 import { isValidWhatsAppNumber, whatsappLink } from "@/lib/whatsapp";
@@ -126,7 +127,9 @@ export default function HomePage() {
   const bannerUrl = settings?.banner_url?.trim() || "";
   const bannerMobileUrl = settings?.banner_mobile_url?.trim() || "";
   const intro = settings?.tagline?.trim() || settings?.description?.trim() || "";
-  const communityItems = (communityPhotos ?? []).filter((photo) => photo.is_active && photo.consent_confirmed);
+  const communityItems = (communityPhotos ?? []).filter(
+    (photo: CommunityPhoto) => photo.is_active && photo.consent_confirmed
+  );
   const communityRailItems = communityItems.length > 0
     ? communityItems.length < 6
       ? Array.from({ length: Math.max(2, Math.ceil(6 / communityItems.length)) }, () => communityItems).flat()
@@ -320,7 +323,7 @@ export default function HomePage() {
           <div className={styles.communityRailWrap}>
             <Marquee speed={40} pauseOnHover pauseOnFocus className={styles.communityMarquee}>
               <div data-testid="community-photo-rail" className={styles.communityTrack}>
-                {communityRailItems.map((photo, index) => (
+                {communityRailItems.map((photo: CommunityPhoto, index: number) => (
                   <button
                     key={`${photo.id}-${index}`}
                     type="button"

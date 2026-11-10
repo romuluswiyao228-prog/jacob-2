@@ -181,7 +181,7 @@ export default function AdminCommunityPage() {
     try {
       await persistPhoto(nextPhoto);
       if (!checked) {
-        showToast("L'activation est bloquée tant que le consentement n'est pas confirmé.", "warning");
+        showToast("L'activation est bloquée tant que le consentement n'est pas confirmé.", "error");
       }
     } catch (error) {
       console.error("Erreur de mise à jour du consentement", error);
@@ -194,7 +194,7 @@ export default function AdminCommunityPage() {
     if (!photo) return;
 
     if (!photo.consent_confirmed) {
-      showToast("Cette photo ne peut pas être activée sans accord de la personne.", "warning");
+      showToast("Cette photo ne peut pas être activée sans accord de la personne.", "error");
       return;
     }
 
