@@ -26,6 +26,7 @@ export interface Product {
   compare_at_price: number | null;
   currency: string;
   category_id: string | null;
+  size_system_id?: string | null;
   is_archived: boolean;
   is_featured: boolean;
   sort_order: number;
@@ -117,10 +118,41 @@ export interface ProductVariant {
   product_id: string;
   size: string | null;
   color: string | null;
+  color_id?: string | null;
+  size_option_id?: string | null;
   sku: string;
   stock: number;
   price: number | null;
+  sale_price?: number | null;
+  compare_at_price?: number | null;
+  allow_preorder?: boolean;
   currency: string;
+}
+
+export interface SizeSystem {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  sort_order: number;
+  is_active: boolean;
+}
+
+export interface SizeOption {
+  id: string;
+  system_id: string;
+  value: string;
+  sort_order: number;
+  is_active: boolean;
+}
+
+export interface Color {
+  id: string;
+  name: string;
+  hex_code: string | null;
+  image_url: string | null;
+  sort_order: number;
+  is_active: boolean;
 }
 
 export interface Favorite {

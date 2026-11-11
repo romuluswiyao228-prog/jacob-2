@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import { whatsappLink } from "@/lib/whatsapp";
+import { mapsLinkError } from "@/lib/checkout-utils";
 import styles from "./AdminOrderDetailPage.module.css";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -153,21 +155,62 @@ function formatDateTime(iso: string) {
   });
 }
 
-function AddressBlock({ addr }: { addr: Record<string, string> | null }) {
+function AddressBlock({ addr }: { addr: Record<string, unknown> | null }) {
   if (!addr) return <span style={{ color: "var(--color-neutral-500)" }}>—</span>;
+  const str = (v: unknown) => (typeof v === "string" && v.trim() ? v : null);
+  const name = str(addr.full_name) ?? str(addr.name);
+  const phone = str(addr.phone);
+  const line1 = str(addr.line1);
+  const line2 = str(addr.line2);
+  const city = str(addr.city);
+  const region = str(addr.region);
+  const postal = str(addr.postal_code);
+  const country = str(addr.country);
+  const landmark = str(addr.landmark);
+  const mapsLink = str(addr.maps_link);
+  const lat = typeof addr.lat === "number" ? addr.lat : null;
+  const lng = typeof addr.lng === "number" ? addr.lng : null;
+
+  const mapsUrl =
+    mapsLink && !mapsLinkError(mapsLink)
+      ? mapsLink
+      : lat != null && lng != null
+      ? `https://www.google.com/maps?q=${lat},${lng}`
+      : null;
+  const waUrl = phone ? whatsappLink(phone) : null;
+
   const lines = [
-    addr.full_name ?? addr.name,
-    addr.line1,
-    addr.line2,
-    [addr.postal_code, addr.city].filter(Boolean).join(" "),
-    addr.country,
-    addr.phone,
-  ].filter(Boolean);
+    name,
+    line1,
+    line2,
+    [postal, city].filter(Boolean).join(" ") || null,
+    region,
+    country,
+    landmark ? `Repère : ${landmark}` : null,
+  ].filter(Boolean) as string[];
+
   return (
     <div className={styles.addressBlock}>
       {lines.map((l, i) => (
         <div key={i}>{l}</div>
       ))}
+      {phone && (
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 4 }}>
+          <a href={`tel:${phone}`}>{phone}</a>
+          {waUrl && (
+            <a href={waUrl} target="_blank" rel="noopener noreferrer">
+              WhatsApp
+            </a>
+          )}
+        </div>
+      )}
+      {mapsUrl && (
+        <div style={{ marginTop: 4 }}>
+          <a href={mapsUrl} target="_blank" rel="noopener noreferrer">
+            Ouvrir dans Google Maps
+          </a>
+        </div>
+      )}
     </div>
   );
 }
@@ -222,7 +265,6 @@ export default function AdminOrderDetailPage() {
           notes, shipping_address, billing_address,
           created_at, updated_at,
           user_id,
-          profiles:user_id ( full_name, email ),
           order_items ( id, product_name, product_description, size, color, unit_price, quantity, line_total, currency ),
           payments ( id, provider, method, provider_reference, amount, currency, status, created_at ),
           shipments ( id, carrier, tracking_number, status, shipped_at, delivered_at ),
@@ -234,7 +276,17 @@ export default function AdminOrderDetailPage() {
 
       if (oErr) throw oErr;
 
-      const profile = Array.isArray(o.profiles) ? o.profiles[0] : o.profiles;
+      // orders.user_id référence auth.users : profil chargé séparément
+      let profile: { full_name: string | null; email: string | null } | null =
+        null;
+      if (o.user_id) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("full_name, email")
+          .eq("id", o.user_id)
+          .maybeSingle();
+        profile = prof ?? null;
+      }
 
       const detail: OrderDetail = {
         id: o.id,

@@ -1,95 +1,130 @@
 import { describe, it, expect } from "vitest";
 import { checkoutSchema } from "@/routes/CheckoutPage";
 
-describe("Validation du formulaire de commande (checkoutSchema)", () => {
+describe("Validation du formulaire de commande simplifié (checkoutSchema)", () => {
   const validData = {
-    first_name: "Jean",
-    last_name: "Dupont",
-    email: "jean.dupont@example.com",
-    phone: "0102030405", // 10 chiffres -> valide
-    country: "Sénégal",
-    city: "Dakar",
-    line1: "12 Avenue Hassan II",
-    notes: "Appeler avant la livraison.",
+    first_name: "Awa",
+    full_name: "Awa Mensah",
+    phone: "+228 90 12 34 56",
+    city: "Lomé",
+    country: "Togo",
+    landmark: "En face de la pharmacie",
   };
 
-  it("valide des données complètes et correctes", () => {
+  it("valide des données complètes avec un point de repère", () => {
     const result = checkoutSchema.safeParse(validData);
     expect(result.success).toBe(true);
   });
 
-  it("accepte un formulaire sans notes facultatives", () => {
-    const { notes, ...withoutNotes } = validData;
-    const result = checkoutSchema.safeParse(withoutNotes);
+  it("valide avec des coordonnées GPS (lat et lng)", () => {
+    const result = checkoutSchema.safeParse({
+      ...validData,
+      lat: 6.1319,
+      lng: 1.2228,
+      landmark: "",
+    });
     expect(result.success).toBe(true);
+  });
+
+  it("valide avec un lien Google Maps", () => {
+    const result = checkoutSchema.safeParse({
+      ...validData,
+      maps_link: "https://maps.app.goo.gl/ExempleValide123",
+      landmark: "",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejette sans aucun élément de position", () => {
+    const result = checkoutSchema.safeParse({ ...validData, landmark: "" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(
+        result.error.errors.some((e) =>
+          e.message.includes("Indiquez votre position")
+        )
+      ).toBe(true);
+    }
+  });
+
+  it("rejette un repère de moins de 5 caractères sans autre position", () => {
+    const result = checkoutSchema.safeParse({ ...validData, landmark: "Phar" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejette un lien Google Maps invalide (hors Google)", () => {
+    const result = checkoutSchema.safeParse({
+      ...validData,
+      maps_link: "https://exemple.com/faux",
+      landmark: "",
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(
+        result.error.errors.some((e) => e.message.includes("Google Maps"))
+      ).toBe(true);
+    }
+  });
+
+  it("rejette lat sans lng", () => {
+    const result = checkoutSchema.safeParse({
+      ...validData,
+      lat: 6.13,
+      landmark: "",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejette une latitude hors limites", () => {
+    const result = checkoutSchema.safeParse({
+      ...validData,
+      lat: 91,
+      lng: 1.2,
+      landmark: "",
+    });
+    expect(result.success).toBe(false);
   });
 
   it("rejette un prénom vide", () => {
-    const result = checkoutSchema.safeParse({ ...validData, first_name: "   " });
+    const result = checkoutSchema.safeParse({ ...validData, first_name: " " });
     expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.errors[0].message).toBe("Le prénom est obligatoire.");
-    }
   });
 
-  it("rejette un nom vide", () => {
-    const result = checkoutSchema.safeParse({ ...validData, last_name: "" });
+  it("rejette un nom complet vide", () => {
+    const result = checkoutSchema.safeParse({ ...validData, full_name: " " });
     expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.errors[0].message).toBe("Le nom est obligatoire.");
-    }
   });
 
-  it("rejette un email invalide", () => {
-    const result = checkoutSchema.safeParse({ ...validData, email: "invalid-email" });
+  it("rejette un nom complet d'un seul caractère", () => {
+    const result = checkoutSchema.safeParse({ ...validData, full_name: "A" });
     expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.errors[0].message).toBe("Veuillez saisir une adresse e-mail valide.");
-    }
   });
 
-  it("rejette un téléphone trop court (< 8 chiffres)", () => {
-    const result = checkoutSchema.safeParse({ ...validData, phone: "12345" });
+  it("rejette un téléphone invalide", () => {
+    const result = checkoutSchema.safeParse({ ...validData, phone: "123" });
     expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.errors[0].message).toContain("Numéro de téléphone invalide");
-    }
-  });
-
-  it("rejette un téléphone trop long (> 15 chiffres)", () => {
-    const result = checkoutSchema.safeParse({ ...validData, phone: "123456789012345678" });
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.errors[0].message).toContain("Numéro de téléphone invalide");
-    }
-  });
-
-  it("accepte un téléphone avec formatage international", () => {
-    const result = checkoutSchema.safeParse({ ...validData, phone: "+221 77 123 45 67" });
-    expect(result.success).toBe(true);
-  });
-
-  it("rejette une adresse vide", () => {
-    const result = checkoutSchema.safeParse({ ...validData, line1: "" });
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.errors[0].message).toBe("L'adresse de livraison est obligatoire.");
-    }
   });
 
   it("rejette une ville vide", () => {
     const result = checkoutSchema.safeParse({ ...validData, city: "  " });
     expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.errors[0].message).toBe("La ville est obligatoire.");
-    }
   });
 
-  it("rejette un pays vide", () => {
-    const result = checkoutSchema.safeParse({ ...validData, country: "" });
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.errors[0].message).toBe("Le pays est obligatoire.");
+  it("accepte un pays absent (facultatif)", () => {
+    const { country, ...withoutCountry } = validData;
+    const result = checkoutSchema.safeParse(withoutCountry);
+    expect(result.success).toBe(true);
+  });
+
+  it("aucun champ e-mail n'est présent dans le schéma", () => {
+    const result = checkoutSchema.safeParse({
+      ...validData,
+      email: "client@example.com",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect("email" in result.data).toBe(false);
+      expect(result.data).not.toHaveProperty("email");
     }
   });
 });

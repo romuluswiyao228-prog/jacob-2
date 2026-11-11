@@ -33,17 +33,16 @@ interface OrderConfirmationState {
   currency: string;
   guestToken?: string | null;
   customer: {
-    first_name: string;
-    last_name: string;
-    email: string;
+    full_name: string;
     phone: string;
-    notes?: string | null;
   };
   shippingAddress: {
-    line1: string;
     city: string;
     country: string;
-    notes?: string | null;
+    landmark?: string | null;
+    maps_link?: string | null;
+    lat?: number | null;
+    lng?: number | null;
   };
   items: CartLineItem[];
 }
@@ -58,16 +57,29 @@ export default function OrderConfirmationPage() {
   const { data: settings } = useStoreSettings();
   const { currency, formatPrice } = useCurrency();
 
+  const mapsUrl = useMemo(() => {
+    if (!state) return null;
+    const addr = state.shippingAddress;
+    if (addr.maps_link) return addr.maps_link;
+    if (addr.lat != null && addr.lng != null) {
+      return `https://www.google.com/maps?q=${addr.lat},${addr.lng}`;
+    }
+    return null;
+  }, [state]);
+
   const whatsappUrl = useMemo(() => {
     if (!state) return null;
-    const msg = orderWhatsAppMessage({
+    let msg = orderWhatsAppMessage({
       orderNumber: state.orderNumber,
       total: formatXOF(state.total),
-      customerName: `${state.customer.first_name} ${state.customer.last_name}`.trim(),
+      customerName: state.customer.full_name,
       city: state.shippingAddress.city,
     });
+    if (mapsUrl) {
+      msg += `\nPosition : ${mapsUrl}`;
+    }
     return whatsappLink(settings?.whatsapp_number, msg);
-  }, [settings?.whatsapp_number, state]);
+  }, [settings?.whatsapp_number, state, mapsUrl]);
 
   // Aucune fausse confirmation si les données de commande réelle sont absentes
   if (!state || !state.orderNumber) {
@@ -221,20 +233,28 @@ export default function OrderConfirmationPage() {
             <div>
               <div className={styles.detailBlockLabel}>{t("confirmation.recipient")}</div>
               <div className={styles.detailBlockContent}>
-                <strong>{state.customer.first_name} {state.customer.last_name}</strong>
+                <strong>{state.customer.full_name}</strong>
                 <div>{state.customer.phone}</div>
-                <div>{state.customer.email}</div>
               </div>
             </div>
 
             <div>
               <div className={styles.detailBlockLabel}>{t("confirmation.shippingAddress")}</div>
               <div className={styles.detailBlockContent}>
-                <div>{state.shippingAddress.line1}</div>
                 <div>{state.shippingAddress.city}, {state.shippingAddress.country}</div>
-                {state.customer.notes && (
-                  <div style={{ marginTop: "4px", fontStyle: "italic", color: "var(--color-neutral-600)" }}>
-                    Indications : {state.customer.notes}
+                {state.shippingAddress.landmark && (
+                  <div>Point de repère : {state.shippingAddress.landmark}</div>
+                )}
+                {mapsUrl && (
+                  <div>
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: "inherit", fontWeight: 700 }}
+                    >
+                      {t("confirmation.viewOnMaps", "Voir sur Google Maps")}
+                    </a>
                   </div>
                 )}
               </div>

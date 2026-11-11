@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ProductCard, Stripe, ProductCarousel, Marquee, Reveal } from "@/components/ui";
+import { ProductCard, ProductCarousel, Marquee, Reveal } from "@/components/ui";
 import { Section } from "@/components/home/Section";
 import { SEO } from "@/components/SEO";
 import {
@@ -103,6 +103,8 @@ export default function HomePage() {
   const [selectedCommunityPhoto, setSelectedCommunityPhoto] = useState<CommunityPhoto | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  const communityRailRef = useRef<HTMLDivElement | null>(null);
+  const [communityRailDuration, setCommunityRailDuration] = useState(40);
 
   const hasCategories = (categories?.length ?? 0) > 0;
   const hasNewProducts = (newProducts?.length ?? 0) > 0;
@@ -136,6 +138,26 @@ export default function HomePage() {
       : communityItems
     : [];
   const communityLink = Object.values(settings?.social_links ?? {}).find((value) => typeof value === "string" && value.trim()) ?? null;
+
+  // Vitesse du rail : 40 px/seconde. Un cycle du Marquee parcourt la largeur
+  // d'une copie du rail, donc la durée = largeur / 40.
+  useEffect(() => {
+    const rail = communityRailRef.current;
+    if (!rail || communityItems.length === 0) return;
+    if (typeof ResizeObserver === "undefined") return;
+
+    const updateDuration = () => {
+      const width = rail.getBoundingClientRect().width;
+      if (width > 0) {
+        setCommunityRailDuration(Math.max(1, width / 40));
+      }
+    };
+
+    updateDuration();
+    const observer = new ResizeObserver(updateDuration);
+    observer.observe(rail);
+    return () => observer.disconnect();
+  }, [communityItems.length]);
 
   useEffect(() => {
     if (!selectedCommunityPhoto) return;
@@ -321,8 +343,12 @@ export default function HomePage() {
           </div>
 
           <div className={styles.communityRailWrap}>
-            <Marquee speed={40} pauseOnHover pauseOnFocus className={styles.communityMarquee}>
-              <div data-testid="community-photo-rail" className={styles.communityTrack}>
+            <Marquee speed={communityRailDuration} pauseOnHover pauseOnFocus className={styles.communityMarquee}>
+              <div
+                ref={communityRailRef}
+                data-testid="community-photo-rail"
+                className={styles.communityTrack}
+              >
                 {communityRailItems.map((photo: CommunityPhoto, index: number) => (
                   <button
                     key={`${photo.id}-${index}`}
@@ -646,8 +672,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Bande signature : entre l'accueil et le pied de page */}
-      <Stripe />
     </div>
   );
 }

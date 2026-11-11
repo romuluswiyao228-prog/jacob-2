@@ -11,6 +11,8 @@ import {
   Lock,
   ShieldCheck,
   ShoppingBag,
+  MapPin,
+  Navigation,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useCart } from "@/lib/cart-context";
@@ -19,371 +21,312 @@ import { supabase } from "@/lib/supabase";
 import {
   Button,
   Input,
-  Badge,
   Breadcrumb,
   EmptyState,
 } from "@/components/ui";
 import { SEO } from "@/components/SEO";
+import {
+  collectCheckoutCities,
+  collectCheckoutCountries,
+  shouldShowCountrySelector,
+  defaultCheckoutCity,
+  hasDeliveryPosition,
+  mapsLinkError,
+  matchShippingFee,
+  googleMapsCoordsUrl,
+  type CheckoutZone,
+} from "@/lib/checkout-utils";
 import styles from "./CheckoutPage.module.css";
 
 function formatXOF(amount: number): string {
-  return amount.toLocaleString("fr-FR") + "\u00a0XOF";
+  return amount.toLocaleString("fr-FR") + " XOF";
 }
 
-// Validation schéma en français
-export const checkoutSchema = z.object({
-  first_name: z
-    .string()
-    .trim()
-    .min(1, "Le prénom est obligatoire.")
-    .max(100, "Le prénom ne doit pas dépasser 100 caractères."),
-  last_name: z
-    .string()
-    .trim()
-    .min(1, "Le nom est obligatoire.")
-    .max(100, "Le nom ne doit pas dépasser 100 caractères."),
-  email: z
-    .string()
-    .trim()
-    .min(1, "L'adresse e-mail est obligatoire.")
-    .max(255, "L'adresse e-mail ne doit pas dépasser 255 caractères.")
-    .email("Veuillez saisir une adresse e-mail valide."),
-  phone: z
-    .string()
-    .trim()
-    .min(1, "Le numéro de téléphone est obligatoire.")
-    .max(30, "Le numéro de téléphone ne doit pas dépasser 30 caractères.")
-    .refine(
-      (val) => {
-        const clean = val.replace(/[^0-9]/g, "");
-        return clean.length >= 8 && clean.length <= 15;
-      },
-      { message: "Numéro de téléphone invalide (entre 8 et 15 chiffres requis)." }
-    ),
-  country: z
-    .string()
-    .trim()
-    .min(1, "Le pays est obligatoire.")
-    .max(100, "Le pays ne doit pas dépasser 100 caractères."),
-  city: z
-    .string()
-    .trim()
-    .min(1, "La ville est obligatoire.")
-    .max(100, "La ville ne doit pas dépasser 100 caractères."),
-  line1: z
-    .string()
-    .trim()
-    .min(1, "L'adresse de livraison est obligatoire.")
-    .max(255, "L'adresse ne doit pas dépasser 255 caractères."),
-  notes: z
-    .string()
-    .max(1000, "Les indications ne doivent pas dépasser 1000 caractères.")
-    .optional(),
-});
+// Validation Zod — miroir des regles de public.place_order
+export const checkoutSchema = z
+  .object({
+    first_name: z
+      .string()
+      .trim()
+      .min(1, "Le prénom est obligatoire.")
+      .max(100, "Le prénom ne doit pas dépasser 100 caractères."),
+    full_name: z
+      .string()
+      .trim()
+      .min(2, "Le nom complet est obligatoire (2 caractères minimum).")
+      .max(100, "Le nom complet ne doit pas dépasser 100 caractères."),
+    phone: z
+      .string()
+      .trim()
+      .min(1, "Le numéro de téléphone est obligatoire.")
+      .max(30, "Le numéro de téléphone ne doit pas dépasser 30 caractères.")
+      .refine(
+        (val) => {
+          const clean = val.replace(/[^0-9]/g, "");
+          return clean.length >= 8 && clean.length <= 15;
+        },
+        { message: "Numéro de téléphone invalide (entre 8 et 15 chiffres requis)." }
+      ),
+    city: z
+      .string()
+      .trim()
+      .min(1, "La ville est obligatoire.")
+      .max(100, "La ville ne doit pas dépasser 100 caractères."),
+    country: z
+      .string()
+      .trim()
+      .max(100, "Le pays ne doit pas dépasser 100 caractères.")
+      .optional(),
+    lat: z.number().nullable().optional(),
+    lng: z.number().nullable().optional(),
+    maps_link: z
+      .string()
+      .trim()
+      .max(300, "Le lien de position ne doit pas dépasser 300 caractères.")
+      .optional()
+      .or(z.literal("")),
+    landmark: z
+      .string()
+      .trim()
+      .max(200, "Le point de repère ne doit pas dépasser 200 caractères.")
+      .refine(
+        (val) => !/[\x00-\x1F\x7F]/.test(val),
+        { message: "Le point de repère contient des caractères invalides." }
+      )
+      .optional()
+      .or(z.literal("")),
+  })
+  .superRefine((data, ctx) => {
+    const lat = data.lat ?? null;
+    const lng = data.lng ?? null;
+    if ((lat == null) !== (lng == null)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["lat"],
+        message: "La latitude et la longitude doivent être fournies ensemble.",
+      });
+    }
+    if (lat != null && (lat < -90 || lat > 90)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["lat"],
+        message: "La latitude doit être comprise entre -90 et 90.",
+      });
+    }
+    if (lng != null && (lng < -180 || lng > 180)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["lng"],
+        message: "La longitude doit être comprise entre -180 et 180.",
+      });
+    }
+    const link = (data.maps_link ?? "").trim();
+    if (link) {
+      const err = mapsLinkError(link);
+      if (err) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["maps_link"],
+          message: err,
+        });
+      }
+    }
+    const landmark = (data.landmark ?? "").trim();
+    if (!hasDeliveryPosition({ lat, lng, mapsLink: link, landmark })) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["landmark"],
+        message: "Indiquez votre position ou un point de repère.",
+      });
+    }
+  });
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
 
 interface ShippingRate {
   id: string;
   name: string;
-  min_weight_g: number;
-  max_weight_g: number | null;
   price: number;
   currency: string;
   is_active: boolean;
 }
 
-interface ShippingZone {
+interface ShippingZone extends CheckoutZone {
   id: string;
-  name: string;
-  countries: string[];
-  regions: string[] | null;
-  is_active: boolean;
   shipping_rates: ShippingRate[];
 }
 
-interface AppliedPromo {
-  code: string;
-  discount_type: "percentage" | "fixed_amount";
-  discount_value: number;
-  discount_amount: number;
-}
+type GeoState =
+  | { status: "idle" }
+  | { status: "locating" }
+  | { status: "saved"; lat: number; lng: number }
+  | { status: "error"; message: string };
 
 export default function CheckoutPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { items, subtotal, clearCart, updateQuantity, removeItem } = useCart();
+  const { items, subtotal, clearCart } = useCart();
   const { currency, formatPrice } = useCurrency();
 
-  // Zones & tarifs de livraison actifs
   const [shippingZones, setShippingZones] = useState<ShippingZone[]>([]);
   const [loadingShipping, setLoadingShipping] = useState(true);
-
-  // Soumission
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-
-  // Code promo
-  const [promoInput, setPromoInput] = useState("");
-  const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null);
-  const [promoError, setPromoError] = useState<string | null>(null);
-  const [loadingPromo, setLoadingPromo] = useState(false);
+  const [geo, setGeo] = useState<GeoState>({ status: "idle" });
 
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     reset,
     formState: { errors },
   } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
       first_name: "",
-      last_name: "",
-      email: "",
+      full_name: "",
       phone: "+228 ",
-      country: "Togo",
-      city: "Lomé",
-      line1: "",
-      notes: "",
+      city: "",
+      country: "",
+      lat: null,
+      lng: null,
+      maps_link: "",
+      landmark: "",
     },
   });
 
-  const watchedCountry = watch("country");
   const watchedCity = watch("city");
+  const watchedCountry = watch("country");
 
-  // 1. Préremplissage pour utilisateur connecté depuis profil et adresse
+  const cities = useMemo(() => collectCheckoutCities(shippingZones), [shippingZones]);
+  const countries = useMemo(() => collectCheckoutCountries(shippingZones), [shippingZones]);
+  const showCountry = useMemo(() => shouldShowCountrySelector(shippingZones), [shippingZones]);
+  const effectiveCountry = showCountry
+    ? (watchedCountry ?? "")
+    : (countries[0] ?? "Togo");
+
+  // Zones + tarifs de livraison actifs
   useEffect(() => {
     let mounted = true;
-
-    async function loadUserProfile() {
-      if (!user) return;
-
-      try {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name, phone, email")
-          .eq("id", user.id)
-          .maybeSingle();
-
-        const { data: address } = await supabase
-          .from("addresses")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("is_default", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (!mounted) return;
-
-        let firstName = "";
-        let lastName = "";
-
-        if (address?.first_name || address?.last_name) {
-          firstName = address.first_name || "";
-          lastName = address.last_name || "";
-        } else if (profile?.full_name) {
-          const parts = profile.full_name.trim().split(/\s+/);
-          firstName = parts[0] || "";
-          lastName = parts.slice(1).join(" ") || parts[0] || "";
-        }
-
-        reset({
-          first_name: firstName,
-          last_name: lastName,
-          email: user.email || profile?.email || "",
-          phone: address?.phone || profile?.phone || "+228 ",
-          country: address?.country || "Togo",
-          city: address?.city || "Lomé",
-          line1: address?.line1 || "",
-          notes: "",
-        });
-      } catch (err) {
-        console.error("Erreur préremplissage profil", err);
-      }
-    }
-
-    loadUserProfile();
-
-    return () => {
-      mounted = false;
-    };
-  }, [user, reset]);
-
-  // 2. Chargement des zones et tarifs de livraison
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadShippingRates() {
+    (async () => {
       try {
         setLoadingShipping(true);
         const { data, error } = await supabase
           .from("shipping_zones")
           .select("id, name, countries, regions, is_active, shipping_rates(*)")
           .eq("is_active", true);
-
         if (error) throw error;
-        if (mounted && data) {
-          setShippingZones(data as ShippingZone[]);
-        }
+        if (mounted && data) setShippingZones(data as ShippingZone[]);
       } catch (err) {
         console.error("Erreur chargement tarifs livraison", err);
       } finally {
         if (mounted) setLoadingShipping(false);
       }
-    }
-
-    loadShippingRates();
-
+    })();
     return () => {
       mounted = false;
     };
   }, []);
 
-  // 3. Calcul dynamique des frais de livraison AVANT validation
-  const matchedShipping = useMemo(() => {
-    const country = (watchedCountry || "").trim().toLowerCase();
-    const city = (watchedCity || "").trim().toLowerCase();
-
-    if (!country) return null;
-
-    // Trouver les zones qui couvrent le pays
-    const eligibleZones = shippingZones.filter((zone) =>
-      zone.countries.some((c) => c.trim().toLowerCase() === country)
-    );
-
-    if (eligibleZones.length === 0) return null;
-
-    // Priorité 1 : zone avec région correspondant spécifiquement à la ville
-    const specificZone = eligibleZones.find(
-      (zone) =>
-        zone.regions &&
-        zone.regions.length > 0 &&
-        zone.regions.some((r) => r.trim().toLowerCase() === city)
-    );
-
-    // Priorité 2 : zone sans restriction de région (couvre tout le pays)
-    const generalZone = eligibleZones.find(
-      (zone) => !zone.regions || zone.regions.length === 0
-    );
-
-    const targetZone = specificZone || generalZone;
-    if (!targetZone) return null;
-
-    // Trouver le tarif actif adapté
-    const activeRates = (targetZone.shipping_rates || [])
-      .filter((r) => r.is_active)
-      .sort((a, b) => a.price - b.price);
-
-    const rate = activeRates[0] || null;
-    if (!rate) return null;
-
-    return {
-      zone: targetZone,
-      rate,
-      price: rate.price,
-    };
-  }, [shippingZones, watchedCountry, watchedCity]);
-
-  const isShippingValid = matchedShipping !== null;
-  const shippingFee = matchedShipping ? matchedShipping.price : null;
-
-  // Recalcul du montant de remise si le sous-total change
+  // Préremplissage client connecté + ville par défaut
   useEffect(() => {
-    if (!appliedPromo) return;
-    let disc = 0;
-    if (appliedPromo.discount_type === "percentage") {
-      disc = Math.round((subtotal * appliedPromo.discount_value) / 100);
-      disc = Math.min(disc, subtotal);
-    } else {
-      disc = Math.min(appliedPromo.discount_value, subtotal);
-    }
-    setAppliedPromo((prev) => (prev ? { ...prev, discount_amount: disc } : null));
-  }, [subtotal]);
+    if (loadingShipping) return;
+    const defaultCity = defaultCheckoutCity(shippingZones);
+    const defaultCountry = countries[0] ?? "Togo";
 
-  // 4. Application du code promotionnel
-  const handleApplyPromo = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const code = promoInput.trim().toUpperCase();
-    if (!code) return;
-
-    setLoadingPromo(true);
-    setPromoError(null);
-
-    try {
-      const { data: promo, error } = await supabase
-        .from("promotions")
-        .select("*")
-        .ilike("code", code)
-        .maybeSingle();
-
-      if (error || !promo) {
-        setPromoError("Ce code promotionnel est introuvable.");
-        return;
+    let mounted = true;
+    (async () => {
+      let fullName = "";
+      let phone = "+228 ";
+      if (user) {
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name, phone")
+            .eq("id", user.id)
+            .maybeSingle();
+          if (profile?.full_name) fullName = profile.full_name;
+          if (profile?.phone) phone = profile.phone;
+        } catch {
+          // Préremplissage non critique
+        }
       }
+      const { data: address } = user
+        ? await supabase
+            .from("addresses")
+            .select("city, country, phone")
+            .eq("user_id", user.id)
+            .order("is_default", { ascending: false })
+            .limit(1)
+            .maybeSingle()
+        : { data: null };
+      if (!mounted) return;
 
-      if (!promo.is_active) {
-        setPromoError("Ce code promotionnel n'est plus actif.");
-        return;
-      }
-
-      const now = new Date();
-      if (promo.starts_at && now < new Date(promo.starts_at)) {
-        setPromoError("Ce code promo n'est pas encore actif.");
-        return;
-      }
-
-      if (promo.ends_at && now > new Date(promo.ends_at)) {
-        setPromoError("Ce code promotionnel a expiré.");
-        return;
-      }
-
-      if (promo.max_uses != null && promo.used_count >= promo.max_uses) {
-        setPromoError("Ce code promotionnel a atteint sa limite d'utilisation.");
-        return;
-      }
-
-      if (promo.min_order_amount != null && subtotal < promo.min_order_amount) {
-        setPromoError(
-          `Montant minimum de ${formatXOF(promo.min_order_amount)} requis pour ce code.`
-        );
-        return;
-      }
-
-      let discountAmount = 0;
-      if (promo.discount_type === "percentage") {
-        discountAmount = Math.round((subtotal * promo.discount_value) / 100);
-        discountAmount = Math.min(discountAmount, subtotal);
-      } else {
-        discountAmount = Math.min(promo.discount_value, subtotal);
-      }
-
-      setAppliedPromo({
-        code: promo.code,
-        discount_type: promo.discount_type,
-        discount_value: promo.discount_value,
-        discount_amount: discountAmount,
+      reset({
+        first_name: "",
+        full_name: fullName,
+        phone: address?.phone || phone,
+        city: address?.city || defaultCity,
+        country: showCountry ? address?.country || defaultCountry : "",
+        lat: null,
+        lng: null,
+        maps_link: "",
+        landmark: "",
       });
-      setPromoInput("");
-    } catch {
-      setPromoError("Impossible de vérifier le code promo.");
-    } finally {
-      setLoadingPromo(false);
-    }
-  };
+    })();
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadingShipping, shippingZones, user]);
 
-  const handleRemovePromo = () => {
-    setAppliedPromo(null);
-    setPromoError(null);
-  };
+  // Frais de livraison dès le choix de la ville
+  const matchedShipping = useMemo(
+    () => matchShippingFee(shippingZones, effectiveCountry, watchedCity ?? ""),
+    [shippingZones, effectiveCountry, watchedCity]
+  );
+  const isShippingValid = matchedShipping !== null;
+  const shippingFee = matchedShipping?.price ?? null;
 
-  // Calculs totaux
-  const discountTotal = appliedPromo ? appliedPromo.discount_amount : 0;
   const calculatedTotal =
-    shippingFee !== null ? Math.max(0, subtotal - discountTotal + shippingFee) : null;
+    shippingFee !== null ? Math.max(0, subtotal + shippingFee) : null;
 
-  // 5. Validation et soumission de la commande
+  const geoMapsUrl =
+    geo.status === "saved"
+      ? googleMapsCoordsUrl(geo.lat, geo.lng)
+      : null;
+
+  const requestPosition = () => {
+    if (!("geolocation" in navigator)) {
+      setGeo({
+        status: "error",
+        message: t("checkout.geoUnavailable", "La géolocalisation n'est pas disponible sur cet appareil."),
+      });
+      return;
+    }
+    setGeo({ status: "locating" });
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setValue("lat", latitude, { shouldValidate: true });
+        setValue("lng", longitude, { shouldValidate: true });
+        setGeo({ status: "saved", lat: latitude, lng: longitude });
+      },
+      (err) => {
+        const denied = err.code === err.PERMISSION_DENIED;
+        setGeo({
+          status: "error",
+          message: denied
+            ? t("checkout.geoDenied", "Position refusée. Vous pouvez coller un lien Google Maps ou indiquer un point de repère.")
+            : t("checkout.geoError", "Impossible d'obtenir votre position. Vérifiez que la géolocalisation est activée."),
+        });
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  };
+
   const onSubmit = async (data: CheckoutFormData) => {
     if (!isShippingValid || shippingFee === null) {
       setSubmitError(
@@ -391,7 +334,6 @@ export default function CheckoutPage() {
       );
       return;
     }
-
     if (items.length === 0) {
       setSubmitError("Votre panier est vide.");
       return;
@@ -407,18 +349,24 @@ export default function CheckoutPage() {
 
     const pCustomer = {
       first_name: data.first_name.trim(),
-      last_name: data.last_name.trim(),
-      email: data.email.trim().toLowerCase(),
+      full_name: data.full_name.trim(),
       phone: data.phone.trim(),
-      notes: data.notes?.trim() || null,
     };
 
-    const pShipping = {
-      line1: data.line1.trim(),
+    const pShippingAddress: Record<string, unknown> = {
       city: data.city.trim(),
-      country: data.country.trim(),
-      notes: data.notes?.trim() || null,
+      country: effectiveCountry || "Togo",
     };
+    const lat = data.lat ?? null;
+    const lng = data.lng ?? null;
+    if (lat != null && lng != null) {
+      pShippingAddress.lat = lat;
+      pShippingAddress.lng = lng;
+    }
+    const link = (data.maps_link ?? "").trim();
+    if (link) pShippingAddress.maps_link = link;
+    const landmark = (data.landmark ?? "").trim();
+    if (landmark) pShippingAddress.landmark = landmark;
 
     try {
       const { data: orderResult, error: rpcError } = await supabase.rpc(
@@ -426,20 +374,16 @@ export default function CheckoutPage() {
         {
           p_items: pItems,
           p_customer: pCustomer,
-          p_shipping_address: pShipping,
+          p_shipping_address: pShippingAddress,
           p_payment_method: "cash_on_delivery",
-          p_promo_code: appliedPromo?.code || null,
+          p_promo_code: null,
         }
       );
 
-      if (rpcError) {
-        throw rpcError;
-      }
+      if (rpcError) throw rpcError;
 
-      // Vidage du panier UNIQUEMENT en cas de succès confirmé
       await clearCart();
 
-      // Redirection vers confirmation avec données réelles
       navigate("/commande/confirmation", {
         state: {
           orderId: orderResult.order_id,
@@ -451,7 +395,7 @@ export default function CheckoutPage() {
           currency: orderResult.currency || "XOF",
           guestToken: orderResult.guest_token,
           customer: pCustomer,
-          shippingAddress: pShipping,
+          shippingAddress: pShippingAddress,
           items: [...items],
         },
         replace: true,
@@ -463,60 +407,12 @@ export default function CheckoutPage() {
           : typeof err === "object" && err !== null && "message" in err
           ? String((err as { message: unknown }).message)
           : "Une erreur est survenue lors de la création de la commande.";
-
-      // Gestion spécifique des erreurs de stock : réajustement du panier
-      const isStockOrArchived =
-        rawMsg.toLowerCase().includes("stock") ||
-        rawMsg.toLowerCase().includes("archive") ||
-        rawMsg.toLowerCase().includes("disponible");
-
-      if (isStockOrArchived) {
-        try {
-          const variantIds = items.map((i) => i.variant_id);
-          const { data: freshVariants } = await supabase
-            .from("product_variants")
-            .select("id, stock, products(name, is_archived)")
-            .in("id", variantIds);
-
-          const explanations: string[] = [];
-
-          if (freshVariants) {
-            for (const item of items) {
-              const fresh = freshVariants.find((v: { id: string }) => v.id === item.variant_id);
-              const isArchived = (fresh as { products?: { is_archived?: boolean } })?.products?.is_archived;
-              const currentStock = fresh?.stock ?? 0;
-
-              if (!fresh || isArchived || currentStock <= 0) {
-                await removeItem(item.id);
-                explanations.push(
-                  `« ${item.product_name} » n'est plus disponible et a été retiré de votre panier.`
-                );
-              } else if (currentStock < item.quantity) {
-                await updateQuantity(item.id, currentStock);
-                explanations.push(
-                  `La quantité de « ${item.product_name} » a été ajustée à ${currentStock} (stock disponible restant).`
-                );
-              }
-            }
-          }
-
-          setSubmitError(
-            explanations.length > 0
-              ? `Ajustement de stock nécessaire : ${explanations.join(" ")} Veuillez vérifier votre commande avant de revalider.`
-              : rawMsg
-          );
-        } catch {
-          setSubmitError(rawMsg);
-        }
-      } else {
-        setSubmitError(rawMsg);
-      }
+      setSubmitError(rawMsg);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Si le panier est vide
   if (items.length === 0) {
     return (
       <main className={styles.page}>
@@ -555,7 +451,7 @@ export default function CheckoutPage() {
     <main className={styles.page}>
       <SEO
         title={t("checkout.pageTitle")}
-        description="Renseignez vos coordonnées et choisissez votre mode de paiement pour valider votre commande sur JACOB DE JESUS."
+        description="Renseignez vos coordonnées et votre position pour valider votre commande sur JACOB DE JESUS."
       />
       <div className={styles.container}>
         <div className={styles.breadcrumbNav}>
@@ -574,15 +470,10 @@ export default function CheckoutPage() {
             <span className={styles.authBadgeDot} />
             {user ? (
               <span>
-                Connecté en tant que <strong>{user.email}</strong> (préremplissage actif)
+                Connecté en tant que <strong>{user.email}</strong>
               </span>
             ) : (
-              <span>
-                Commande invité · Aucun compte requis ·{" "}
-                <Link to="/connexion?redirect=/commande" style={{ color: "inherit", fontWeight: 700 }}>
-                  Se connecter ?
-                </Link>
-              </span>
+              <span>{t("checkout.guestCheckout", "Commande invité · Aucun compte requis")}</span>
             )}
           </div>
         </header>
@@ -591,7 +482,9 @@ export default function CheckoutPage() {
           <div className={styles.errorBanner} role="alert">
             <AlertTriangle size={20} style={{ flexShrink: 0 }} />
             <div className={styles.errorBannerContent}>
-              <div className={styles.errorBannerTitle}>Impossible de valider la commande</div>
+              <div className={styles.errorBannerTitle}>
+                {t("checkout.submitErrorTitle", "Impossible de valider la commande")}
+              </div>
               <div>{submitError}</div>
             </div>
           </div>
@@ -599,13 +492,12 @@ export default function CheckoutPage() {
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className={styles.grid}>
-            {/* Colonne gauche : formulaires */}
             <div className={styles.formCol}>
-              {/* Étape 1 : Coordonnées client */}
+              {/* Coordonnées */}
               <section className={styles.card}>
                 <div className={styles.cardHeader}>
                   <h2 className={styles.cardTitle}>
-                    1. {t("checkout.customerSection")}
+                    {t("checkout.customerSection")}
                   </h2>
                 </div>
 
@@ -613,105 +505,74 @@ export default function CheckoutPage() {
                   <div className={styles.fieldGroup}>
                     <Input
                       label={`${t("checkout.firstName")} *`}
-                      placeholder="Ex: Koffi"
+                      placeholder="Ex: Awa"
+                      autoComplete="given-name"
                       error={errors.first_name?.message}
                       {...register("first_name")}
                     />
                   </div>
                   <div className={styles.fieldGroup}>
                     <Input
-                      label={`${t("checkout.lastName")} *`}
-                      placeholder="Ex: Mensah"
-                      error={errors.last_name?.message}
-                      {...register("last_name")}
-                    />
-                  </div>
-                </div>
-
-                <div className={styles.row2}>
-                  <div className={styles.fieldGroup}>
-                    <Input
-                      label={`${t("checkout.phone")} *`}
-                      type="tel"
-                      placeholder="+228 90 12 34 56"
-                      hint="Pour être joint par le livreur"
-                      error={errors.phone?.message}
-                      {...register("phone")}
-                    />
-                  </div>
-                  <div className={styles.fieldGroup}>
-                    <Input
-                      label={`${t("checkout.email")} *`}
-                      type="email"
-                      placeholder="exemple@domaine.com"
-                      hint="Pour la confirmation et le suivi"
-                      error={errors.email?.message}
-                      {...register("email")}
-                    />
-                  </div>
-                </div>
-              </section>
-
-              {/* Étape 2 : Adresse de livraison */}
-              <section className={styles.card}>
-                <div className={styles.cardHeader}>
-                  <h2 className={styles.cardTitle}>
-                    2. {t("checkout.shippingSection")}
-                  </h2>
-                </div>
-
-                <div className={styles.row2}>
-                  <div className={styles.fieldGroup}>
-                    <Input
-                      label={`${t("checkout.country")} *`}
-                      placeholder="Ex: Togo"
-                      error={errors.country?.message}
-                      {...register("country")}
-                    />
-                  </div>
-                  <div className={styles.fieldGroup}>
-                    <Input
-                      label={`${t("checkout.city")} *`}
-                      placeholder="Ex: Lomé"
-                      error={errors.city?.message}
-                      {...register("city")}
+                      label={`${t("checkout.fullName", "Nom complet")} *`}
+                      placeholder="Ex: Awa Mensah"
+                      autoComplete="name"
+                      error={errors.full_name?.message}
+                      {...register("full_name")}
                     />
                   </div>
                 </div>
 
                 <div className={styles.fieldGroup}>
                   <Input
-                    label={`${t("checkout.addressLine1")} *`}
-                    placeholder="Ex: Quartier Tokoin, Rue des Palmiers, Porte 42"
-                    error={errors.line1?.message}
-                    {...register("line1")}
+                    label={`${t("checkout.phone")} *`}
+                    type="tel"
+                    placeholder="+228 90 12 34 56"
+                    hint="Pour être joint par le livreur"
+                    error={errors.phone?.message}
+                    {...register("phone")}
                   />
-                </div>
-
-                <div className={styles.fieldGroup}>
-                  <div className={styles.textareaWrapper}>
-                    <label htmlFor="notes" className={styles.label}>
-                      {t("checkout.deliveryNotes")}
-                    </label>
-                    <textarea
-                      id="notes"
-                      className={styles.textarea}
-                      placeholder="Ex: Maison blanche portail noir en face de la pharmacie, appeler avant d'arriver..."
-                      {...register("notes")}
-                    />
-                    <span className={styles.hint}>
-                      Aidez le livreur à vous trouver plus rapidement.
-                    </span>
-                  </div>
                 </div>
               </section>
 
-              {/* Étape 3 : Frais de livraison (calculés dynamiquement AVANT validation) */}
+              {/* Livraison */}
               <section className={styles.card}>
                 <div className={styles.cardHeader}>
                   <h2 className={styles.cardTitle}>
-                    3. Mode de livraison
+                    {t("checkout.shippingSection")}
                   </h2>
+                </div>
+
+                <div className={styles.row2}>
+                  <div className={styles.fieldGroup}>
+                    <Input
+                      label={`${t("checkout.city")} *`}
+                      list="checkout-cities"
+                      placeholder="Ex: Lomé"
+                      error={errors.city?.message}
+                      {...register("city")}
+                    />
+                    <datalist id="checkout-cities">
+                      {cities.map((city) => (
+                        <option key={city} value={city} />
+                      ))}
+                    </datalist>
+                  </div>
+                  {showCountry && (
+                    <div className={styles.fieldGroup}>
+                      <Input
+                        label={t("checkout.country", "Pays")}
+                        list="checkout-countries"
+                        placeholder="Ex: Togo"
+                        error={errors.country?.message}
+                        {...register("country")}
+                      />
+                      <datalist id="checkout-countries">
+                        {countries.map((country) => (
+                          <option key={country} value={country} />
+                        ))}
+                      </datalist>
+                    </div>
+                  )}
                 </div>
 
                 {loadingShipping ? (
@@ -721,11 +582,13 @@ export default function CheckoutPage() {
                     <Truck size={24} className={styles.shippingIcon} />
                     <div className={styles.shippingInfo}>
                       <div className={styles.shippingTitle}>
-                        {matchedShipping.rate.name}
+                        {matchedShipping.zone.name}
                       </div>
                       <div className={styles.shippingDesc}>
-                        Destination reconnue pour {watchedCity}, {watchedCountry} ({matchedShipping.zone.name}).
-                        Livraison en main propre à votre domicile.
+                        {t("checkout.shippingAvailable", "Livraison disponible pour {{city}}, {{country}}.", {
+                          city: watchedCity,
+                          country: effectiveCountry,
+                        })}
                       </div>
                     </div>
                     <div className={styles.shippingPrice}>
@@ -739,35 +602,98 @@ export default function CheckoutPage() {
                     <AlertTriangle size={24} style={{ flexShrink: 0 }} />
                     <div>
                       <div className={styles.shippingWarningTitle}>
-                        Livraison à confirmer
+                        {t("checkout.shippingUnavailableTitle", "Livraison à confirmer")}
                       </div>
                       <div className={styles.shippingWarningText}>
-                        Aucun tarif de livraison automatique n'est configuré pour la destination{" "}
-                        <strong>{watchedCity || "non renseignée"}, {watchedCountry || "non renseigné"}</strong>.
-                        La validation de la commande en ligne est actuellement bloquée pour cette adresse.
-                        Veuillez corriger votre ville ou pays pour sélectionner une zone desservie (ex: Lomé, Togo).
+                        {t("checkout.shippingUnavailableText", "Aucun tarif de livraison pour cette destination. Choisissez une ville desservie (ex : Lomé).")}
                       </div>
                     </div>
                   </div>
                 )}
+
+                {/* Position de livraison */}
+                <div className={styles.positionBlock}>
+                  <div className={styles.positionHeader}>
+                    <MapPin size={16} />
+                    <span className={styles.positionTitle}>
+                      {t("checkout.positionTitle", "Position de livraison")}
+                    </span>
+                  </div>
+                  <p className={styles.hint}>
+                    {t("checkout.positionPrivacy", "Votre position sert uniquement à la livraison.")}
+                  </p>
+
+                  {geo.status === "saved" ? (
+                    <div className={styles.geoSaved}>
+                      <Navigation size={14} />
+                      <span>{t("checkout.geoSaved", "Position enregistrée")}</span>
+                      {geoMapsUrl && (
+                        <a
+                          href={geoMapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={styles.geoLink}
+                        >
+                          {t("checkout.geoVerify", "Vérifier sur Google Maps")}
+                        </a>
+                      )}
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={geo.status === "locating"}
+                      onClick={requestPosition}
+                    >
+                      <Navigation size={14} style={{ marginRight: 6 }} />
+                      {geo.status === "locating"
+                        ? t("checkout.geoLocating", "Localisation en cours…")
+                        : t("checkout.geoButton", "Envoyer ma position")}
+                    </Button>
+                  )}
+
+                  {geo.status === "error" && (
+                    <p className={styles.promoError}>{geo.message}</p>
+                  )}
+                  {errors.lat && <p className={styles.promoError}>{errors.lat.message}</p>}
+                  {errors.lng && <p className={styles.promoError}>{errors.lng.message}</p>}
+
+                  <div className={styles.fieldGroup}>
+                    <Input
+                      label={t("checkout.mapsLinkLabel", "Ou colle un lien Google Maps")}
+                      type="url"
+                      placeholder="https://maps.app.goo.gl/…"
+                      error={errors.maps_link?.message}
+                      {...register("maps_link")}
+                    />
+                  </div>
+
+                  <div className={styles.fieldGroup}>
+                    <Input
+                      label={t("checkout.landmarkLabel", "Point de repère (quartier, près de)")}
+                      placeholder="Ex: En face de la pharmacie, portail noir"
+                      error={errors.landmark?.message}
+                      {...register("landmark")}
+                    />
+                  </div>
+                </div>
               </section>
 
-              {/* Étape 4 : Mode de paiement */}
+              {/* Paiement */}
               <section className={styles.card}>
                 <div className={styles.cardHeader}>
                   <h2 className={styles.cardTitle}>
-                    4. {t("checkout.paymentSection")}
+                    {t("checkout.paymentSection")}
                   </h2>
                 </div>
-
                 <div className={styles.paymentCard}>
                   <Banknote size={26} className={styles.paymentIcon} />
                   <div className={styles.paymentInfo}>
                     <div className={styles.paymentTitleRow}>
                       <span className={styles.paymentTitle}>
-                        {t("checkout.cashOnDelivery")}
+                        {t("checkout.codLine", "Paiement à la livraison")}
                       </span>
-                      <Badge variant="neutral">Actif</Badge>
                     </div>
                     <p className={styles.paymentDesc}>
                       {t("checkout.cashOnDeliveryDesc")}
@@ -777,15 +703,16 @@ export default function CheckoutPage() {
               </section>
             </div>
 
-            {/* Colonne droite : Récapitulatif complet */}
+            {/* Résumé */}
             <aside className={styles.summaryCol}>
               <div className={styles.summaryCard}>
                 <div className={styles.summaryHeader}>
                   <h2 className={styles.summaryTitle}>{t("checkout.summarySection")}</h2>
-                  <span className={styles.hint}>{items.length} {items.length > 1 ? "articles" : "article"}</span>
+                  <span className={styles.hint}>
+                    {items.length} {items.length > 1 ? "articles" : "article"}
+                  </span>
                 </div>
 
-                {/* Liste des articles */}
                 <ul className={styles.itemsList}>
                   {items.map((item) => (
                     <li key={item.id} className={styles.itemRow}>
@@ -815,55 +742,11 @@ export default function CheckoutPage() {
                   ))}
                 </ul>
 
-                {/* Section Code Promo */}
-                <div className={styles.promoSection}>
-                  {appliedPromo ? (
-                    <div className={styles.promoApplied}>
-                      <div>
-                        <span className={styles.promoTag}>✓ {appliedPromo.code}</span>
-                        <span style={{ marginLeft: 6, color: "var(--color-neutral-600)" }}>
-                          (-{formatXOF(appliedPromo.discount_amount)})
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleRemovePromo}
-                        className={styles.promoRemoveBtn}
-                      >
-                        {t("cart.remove")}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className={styles.promoForm}>
-                      <input
-                        type="text"
-                        placeholder={t("checkout.promoCode")}
-                        value={promoInput}
-                        onChange={(e) => setPromoInput(e.target.value)}
-                        className={styles.textarea}
-                        style={{ minHeight: "auto", height: 38, padding: "0 10px" }}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={!promoInput.trim() || loadingPromo}
-                        onClick={handleApplyPromo}
-                      >
-                        {loadingPromo ? "…" : t("checkout.applyPromo")}
-                      </Button>
-                    </div>
-                  )}
-                  {promoError && <p className={styles.promoError}>{promoError}</p>}
-                </div>
-
-                {/* Totaux */}
                 <div className={styles.totalsBreakdown}>
                   <div className={styles.calcRow}>
                     <span>{t("checkout.itemsSubtotal")}</span>
                     <span className={styles.calcValue}>{formatXOF(subtotal)}</span>
                   </div>
-
                   <div className={styles.calcRow}>
                     <span>{t("checkout.shippingFee")}</span>
                     {isShippingValid && shippingFee !== null ? (
@@ -872,22 +755,11 @@ export default function CheckoutPage() {
                       </span>
                     ) : (
                       <span className={styles.unconfirmedText}>
-                        Livraison à confirmer
+                        {t("checkout.shippingToConfirm", "Livraison à confirmer")}
                       </span>
                     )}
                   </div>
-
-                  {appliedPromo && (
-                    <div className={styles.calcRow}>
-                      <span>{t("checkout.discount")} ({appliedPromo.code})</span>
-                      <span className={styles.discountValue}>
-                        -{formatXOF(appliedPromo.discount_amount)}
-                      </span>
-                    </div>
-                  )}
-
                   <div className={styles.divider} />
-
                   <div className={styles.totalRow}>
                     <span className={styles.totalLabel}>{t("checkout.total")}</span>
                     <div style={{ textAlign: "end" }}>
@@ -903,14 +775,8 @@ export default function CheckoutPage() {
                       )}
                     </div>
                   </div>
-                  {currency !== "XOF" && (
-                    <p style={{ fontSize: "var(--text-xs)", color: "var(--color-neutral-500)", marginTop: "var(--space-2)", fontStyle: "italic", textAlign: "end" }}>
-                      Vous serez facturé en XOF ; la conversion est indicative.
-                    </p>
-                  )}
                 </div>
 
-                {/* Bouton de confirmation */}
                 <Button
                   type="submit"
                   variant="primary"
@@ -922,18 +788,18 @@ export default function CheckoutPage() {
                   {isSubmitting
                     ? t("checkout.submitting")
                     : !isShippingValid
-                    ? "Livraison indisponible"
+                    ? t("checkout.shippingUnavailableShort", "Livraison indisponible")
                     : t("checkout.submitOrder")}
                 </Button>
 
                 <div className={styles.guarantees}>
                   <div className={styles.guaranteeItem}>
                     <Lock size={14} />
-                    <span>Paiement en espèces lors de la livraison</span>
+                    <span>{t("checkout.codLine", "Paiement à la livraison")}</span>
                   </div>
                   <div className={styles.guaranteeItem}>
                     <ShieldCheck size={14} />
-                    <span>Vérification des articles avant règlement</span>
+                    <span>{t("checkout.guaranteeCheck", "Vérification des articles avant règlement")}</span>
                   </div>
                 </div>
               </div>

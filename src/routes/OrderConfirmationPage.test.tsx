@@ -19,15 +19,13 @@ const mockOrderState = {
   total: 52500,
   currency: "XOF",
   customer: {
-    first_name: "Jean",
-    last_name: "Dupont",
-    email: "jean.dupont@example.com",
+    full_name: "Jean Dupont",
     phone: "0102030405",
   },
   shippingAddress: {
-    line1: "Rue 12",
     city: "Abidjan",
     country: "Côte d'Ivoire",
+    landmark: "En face de la pharmacie",
   },
   items: [
     {

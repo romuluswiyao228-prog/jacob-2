@@ -245,7 +245,6 @@
   object-fit: cover;
   aspect-ratio: 4 / 5;
   background: var(--color-neutral-200);
-  border: 2px solid var(--color-border);
 }
 
 .communityLightboxBackdrop {

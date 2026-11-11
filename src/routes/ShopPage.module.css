@@ -14,10 +14,6 @@
   padding-bottom: var(--space-4);
 }
 
-.shopStripe {
-  margin-bottom: var(--space-6);
-}
-
 .headerTop {
   display: flex;
   align-items: baseline;

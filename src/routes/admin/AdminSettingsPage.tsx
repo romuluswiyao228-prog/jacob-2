@@ -18,7 +18,7 @@ import {
   Images,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { resizeImage, resizeImageToMax1600 } from "@/lib/admin-utils";
+import { resizeImage, resizeImageToMax1600, storeAssetPathFromUrl } from "@/lib/admin-utils";
 import type { HomeSlide } from "@/lib/db-types";
 import { useToast } from "@/components/ui/Toast";
 import styles from "./AdminSettingsPage.module.css";
@@ -553,15 +553,29 @@ export default function AdminSettingsPage() {
     ]);
   };
 
-  const handleDeleteSlide = async (id: string) => {
+  const handleDeleteSlide = async (slide: HomeSlide) => {
     if (!window.confirm("Supprimer cette photo d'accueil ?")) return;
-    setSlides((prev) => prev.filter((s) => s.id !== id));
-    const { error: err } = await supabase.from("home_slides").delete().eq("id", id);
+    setSlides((prev) => prev.filter((s) => s.id !== slide.id));
+    const { error: err } = await supabase.from("home_slides").delete().eq("id", slide.id);
     if (err) {
       showToast("Erreur lors de la suppression de la photo.", "error");
-    } else {
-      showToast("Photo supprimée.", "success");
+      return;
     }
+
+    const storagePath = storeAssetPathFromUrl(slide.image_url);
+    if (storagePath) {
+      const { error: storageError } = await supabase.storage
+        .from("store-assets")
+        .remove([storagePath]);
+      if (storageError) {
+        showToast(
+          "Photo supprimée, mais le fichier n'a pas pu être effacé du stockage.",
+          "error"
+        );
+        return;
+      }
+    }
+    showToast("Photo supprimée.", "success");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1042,7 +1056,7 @@ export default function AdminSettingsPage() {
                                 type="button"
                                 title="Supprimer"
                                 className={`${styles.slideActionBtn} ${styles.slideActionBtnDelete}`}
-                                onClick={() => handleDeleteSlide(slide.id)}
+                                onClick={() => handleDeleteSlide(slide)}
                               >
                                 <Trash2 size={14} />
                               </button>

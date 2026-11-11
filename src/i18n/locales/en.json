@@ -107,6 +107,7 @@
     "inStock": "In stock",
     "stockRemaining": "Only {{count}} piece(s) available",
     "soldOut": "Sold out",
+    "preorder": "Pre-order available",
     "complementary": "Complete the look",
     "errSelectSize": "Choisissez une taille.",
     "errSelectColor": "Choisissez une couleur.",
@@ -171,7 +172,27 @@
     "submitOrder": "PLACE ORDER",
     "submitting": "Processing…",
     "emptyCartError": "Your cart is empty.",
-    "orderSuccess": "Order placed successfully."
+    "orderSuccess": "Order placed successfully.",
+    "fullName": "Full name",
+    "guestCheckout": "Guest checkout · No account required",
+    "shippingAvailable": "Delivery available for {{city}}, {{country}}.",
+    "shippingUnavailableTitle": "Delivery to be confirmed",
+    "shippingUnavailableText": "No delivery rate for this destination. Choose a served city (e.g. Lomé).",
+    "shippingUnavailableShort": "Delivery unavailable",
+    "positionTitle": "Delivery position",
+    "positionPrivacy": "Your position is used only for delivery.",
+    "geoButton": "Send my position",
+    "geoLocating": "Locating…",
+    "geoSaved": "Position saved",
+    "geoVerify": "Check on Google Maps",
+    "geoDenied": "Position denied. You can paste a Google Maps link or give a landmark.",
+    "geoError": "Unable to get your position. Check that geolocation is enabled.",
+    "geoUnavailable": "Geolocation is not available on this device.",
+    "mapsLinkLabel": "Or paste a Google Maps link",
+    "landmarkLabel": "Landmark (neighborhood, near)",
+    "codLine": "Cash on delivery",
+    "guaranteeCheck": "Items checked before payment",
+    "shippingToConfirm": "Delivery to be confirmed"
   },
   "confirmation": {
     "pageTitle": "Order Confirmation",
@@ -207,7 +228,8 @@
     "continueShopping": "Continue shopping",
     "print": "Print summary",
     "noOrderTitle": "No recent order found",
-    "noOrderDesc": "You do not have an order being confirmed. If you placed an order, please check your inbox or sign in."
+    "noOrderDesc": "You do not have an order being confirmed. If you placed an order, please check your inbox or sign in.",
+    "viewOnMaps": "View on Google Maps"
   },
   "account": {
     "title": "My Account",
@@ -291,4 +313,3 @@
     "indicativeNotice": "Prices in other currencies are indicative conversions. Billing is processed in XOF."
   }
 }
-

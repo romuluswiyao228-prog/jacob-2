@@ -9,7 +9,7 @@ import {
   Upload,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { resizeImage } from "@/lib/admin-utils";
+import { resizeImage, storeAssetPathFromUrl } from "@/lib/admin-utils";
 import type { CommunityPhoto } from "@/lib/db-types";
 import { useToast } from "@/components/ui/Toast";
 import styles from "./AdminCommunityPage.module.css";
@@ -154,12 +154,31 @@ export default function AdminCommunityPage() {
     }
   };
 
-  const handlePhotoDelete = async (photoId: string) => {
+  const handlePhotoDelete = async (photo: CommunityPhoto) => {
     try {
-      const { error } = await supabase.from("community_photos").delete().eq("id", photoId);
+      const { error } = await supabase.from("community_photos").delete().eq("id", photo.id);
       if (error) throw error;
-      setPhotos((current) => current.filter((photo) => photo.id !== photoId));
-      showToast("Photo supprimée.", "success");
+
+      setPhotos((current) => current.filter((entry) => entry.id !== photo.id));
+
+      const storagePath = storeAssetPathFromUrl(photo.image_url);
+      if (!storagePath) {
+        showToast("Photo supprimée.", "success");
+        return;
+      }
+
+      const { error: storageError } = await supabase.storage
+        .from("store-assets")
+        .remove([storagePath]);
+
+      if (storageError) {
+        showToast(
+          "Photo supprimée de la liste, mais le fichier n'a pas pu être effacé du stockage.",
+          "error"
+        );
+      } else {
+        showToast("Photo supprimée.", "success");
+      }
     } catch (error) {
       console.error("Erreur de suppression", error);
       showToast("La photo n'a pas pu être supprimée.", "error");
@@ -314,6 +333,9 @@ export default function AdminCommunityPage() {
                     onBlur={() => void persistPhoto(photo)}
                     className={styles.textarea}
                   />
+                  <span className={styles.fieldHint}>
+                    Pas de nom de famille, de numéro de téléphone ni d'adresse.
+                  </span>
                 </label>
 
                 <label className={styles.fieldLabel}>
@@ -389,7 +411,7 @@ export default function AdminCommunityPage() {
                     <button
                       type="button"
                       className={`${styles.simpleButton} ${styles.deleteButton}`}
-                      onClick={() => void handlePhotoDelete(photo.id)}
+                      onClick={() => void handlePhotoDelete(photo)}
                     >
                       <Trash2 size={14} />
                       <span>Supprimer</span>

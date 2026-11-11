@@ -19,8 +19,6 @@ export type { ProductCarouselProps, ProductCarouselProps as CarouselProps } from
 export { Skeleton } from "./Skeleton";
 export type { SkeletonProps } from "./Skeleton";
 
-export { Stripe } from "./Stripe";
-
 export { ToastProvider, useToast } from "./Toast";
 export type { ToastMessage } from "./Toast";
 

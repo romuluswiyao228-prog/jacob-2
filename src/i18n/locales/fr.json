@@ -107,6 +107,7 @@
     "inStock": "En stock",
     "stockRemaining": "Plus que {{count}} exemplaire(s) disponible(s)",
     "soldOut": "Épuisé",
+    "preorder": "Précommande disponible",
     "complementary": "Complétez le look",
     "errSelectSize": "Choisissez une taille.",
     "errSelectColor": "Choisissez une couleur.",
@@ -171,7 +172,27 @@
     "submitOrder": "COMMANDER",
     "submitting": "Commande en cours…",
     "emptyCartError": "Votre panier est vide.",
-    "orderSuccess": "Commande validée avec succès."
+    "orderSuccess": "Commande validée avec succès.",
+    "fullName": "Nom complet",
+    "guestCheckout": "Commande invité · Aucun compte requis",
+    "shippingAvailable": "Livraison disponible pour {{city}}, {{country}}.",
+    "shippingUnavailableTitle": "Livraison à confirmer",
+    "shippingUnavailableText": "Aucun tarif de livraison pour cette destination. Choisissez une ville desservie (ex : Lomé).",
+    "shippingUnavailableShort": "Livraison indisponible",
+    "positionTitle": "Position de livraison",
+    "positionPrivacy": "Votre position sert uniquement à la livraison.",
+    "geoButton": "Envoyer ma position",
+    "geoLocating": "Localisation en cours…",
+    "geoSaved": "Position enregistrée",
+    "geoVerify": "Vérifier sur Google Maps",
+    "geoDenied": "Position refusée. Vous pouvez coller un lien Google Maps ou indiquer un point de repère.",
+    "geoError": "Impossible d'obtenir votre position. Vérifiez que la géolocalisation est activée.",
+    "geoUnavailable": "La géolocalisation n'est pas disponible sur cet appareil.",
+    "mapsLinkLabel": "Ou colle un lien Google Maps",
+    "landmarkLabel": "Point de repère (quartier, près de)",
+    "codLine": "Paiement à la livraison",
+    "guaranteeCheck": "Vérification des articles avant règlement",
+    "shippingToConfirm": "Livraison à confirmer"
   },
   "confirmation": {
     "pageTitle": "Confirmation de commande",
@@ -207,7 +228,8 @@
     "continueShopping": "Continuer mes achats",
     "print": "Imprimer le récapitulatif",
     "noOrderTitle": "Aucune commande récente trouvée",
-    "noOrderDesc": "Vous n'avez pas de commande en cours de confirmation. Si vous avez passé une commande, vérifiez votre boîte de réception ou connectez-vous à votre compte."
+    "noOrderDesc": "Vous n'avez pas de commande en cours de confirmation. Si vous avez passé une commande, vérifiez votre boîte de réception ou connectez-vous à votre compte.",
+    "viewOnMaps": "Voir sur Google Maps"
   },
   "account": {
     "title": "Mon Compte",

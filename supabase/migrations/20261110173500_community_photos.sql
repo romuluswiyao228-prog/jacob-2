@@ -6,10 +6,10 @@
 
 CREATE TABLE IF NOT EXISTS public.community_photos (
   id                uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  image_url         text        NOT NULL,
-  alt_text          text        NOT NULL DEFAULT '',
-  caption           text,
-  link_path         text        CHECK (link_path IS NULL OR link_path ~ '^/[a-z0-9/_-]*$'),
+  image_url         text        NOT NULL CHECK (image_url ~ '^https://'),
+  alt_text          text        NOT NULL DEFAULT '' CHECK (char_length(alt_text) <= 200),
+  caption           text        CHECK (caption IS NULL OR char_length(caption) <= 200),
+  link_path         text        CHECK (link_path IS NULL OR (link_path ~ '^/[a-z0-9/_-]*$' AND link_path !~ '//')),
   sort_order        int         NOT NULL DEFAULT 0,
   is_active         boolean     NOT NULL DEFAULT false,
   consent_confirmed boolean     NOT NULL DEFAULT false,
@@ -19,37 +19,34 @@ CREATE TABLE IF NOT EXISTS public.community_photos (
 
 ALTER TABLE public.community_photos ENABLE ROW LEVEL SECURITY;
 
--- ── Permissions ──────────────────────────────────────────────────────────────
-
 REVOKE ALL ON public.community_photos FROM anon, authenticated;
-
-GRANT SELECT                 ON public.community_photos TO anon, authenticated;
+GRANT SELECT ON public.community_photos TO anon, authenticated;
 GRANT INSERT, UPDATE, DELETE ON public.community_photos TO authenticated;
 
--- ── RLS : lecture publique (lignes actives uniquement) ───────────────────────
-
+DROP POLICY IF EXISTS "community_photos_select_public" ON public.community_photos;
 CREATE POLICY "community_photos_select_public" ON public.community_photos
   FOR SELECT TO anon, authenticated
   USING (is_active = true);
 
--- ── RLS : lecture admin (toutes lignes, actives ou non) ──────────────────────
-
+DROP POLICY IF EXISTS "community_photos_select_admin" ON public.community_photos;
 CREATE POLICY "community_photos_select_admin" ON public.community_photos
   FOR SELECT TO authenticated
   USING (public.is_admin_aal2());
 
--- ── RLS : écriture réservée à is_admin_aal2() ────────────────────────────────
-
+DROP POLICY IF EXISTS "community_photos_insert_admin" ON public.community_photos;
 CREATE POLICY "community_photos_insert_admin" ON public.community_photos
   FOR INSERT TO authenticated
   WITH CHECK (public.is_admin_aal2());
 
+DROP POLICY IF EXISTS "community_photos_update_admin" ON public.community_photos;
 CREATE POLICY "community_photos_update_admin" ON public.community_photos
   FOR UPDATE TO authenticated
-  USING  (public.is_admin_aal2())
+  USING (public.is_admin_aal2())
   WITH CHECK (public.is_admin_aal2());
 
+DROP POLICY IF EXISTS "community_photos_delete_admin" ON public.community_photos;
 CREATE POLICY "community_photos_delete_admin" ON public.community_photos
   FOR DELETE TO authenticated
   USING (public.is_admin_aal2());
 
+NOTIFY pgrst, 'reload schema';

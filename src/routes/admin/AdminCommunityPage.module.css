@@ -143,6 +143,14 @@
   resize: vertical;
 }
 
+.fieldHint {
+  font-size: 0.78rem;
+  font-weight: var(--weight-regular);
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--color-text-muted);
+}
+
 .metaRow,
 .footerRow {
   display: flex;

@@ -132,6 +132,15 @@ vi.mock("@/lib/supabase", () => {
             }),
           };
         }
+        if (table === "colors") {
+          return {
+            select: () => ({
+              eq: () => ({
+                order: async () => ({ data: [], error: null }),
+              }),
+            }),
+          };
+        }
         if (table === "categories" || table === "favorites") {
           return {
             select: () => ({

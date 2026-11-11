@@ -15,7 +15,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { slugify, resizeImageToMax1600 } from "@/lib/admin-utils";
 import { isNoSizeCategory } from "@/lib/sizes";
-import type { Category } from "@/lib/db-types";
+import type { Category, SizeSystem, SizeOption, Color } from "@/lib/db-types";
 import styles from "./AdminProductEditPage.module.css";
 
 const productFormSchema = z
@@ -55,10 +55,15 @@ interface VariantDraft {
   tempId: string;
   id?: string;
   size: string;
+  sizeOptionId: string | null;
   color: string;
+  colorId: string | null;
   sku: string;
   stock: number;
   price: string;
+  salePrice: string;
+  comparePrice: string;
+  allowPreorder: boolean;
 }
 
 interface ImageDraft {
@@ -81,6 +86,11 @@ export default function AdminProductEditPage() {
   );
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [sizeSystems, setSizeSystems] = useState<SizeSystem[]>([]);
+  const [sizeOptions, setSizeOptions] = useState<SizeOption[]>([]);
+  const [colors, setColors] = useState<Color[]>([]);
+  const [catSystems, setCatSystems] = useState<Record<string, string[]>>({});
+  const [sizeSystemId, setSizeSystemId] = useState<string>("");
   const [loading, setLoading] = useState(isEditing);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -115,6 +125,22 @@ export default function AdminProductEditPage() {
       if (catErr) throw catErr;
       setCategories(catData ?? []);
 
+      // Catalogues tailles / couleurs / liaisons categories
+      const [sysRes, optRes, colRes, cssRes] = await Promise.all([
+        supabase.from("size_systems").select("*").eq("is_active", true).order("sort_order"),
+        supabase.from("size_options").select("*").eq("is_active", true).order("sort_order"),
+        supabase.from("colors").select("*").eq("is_active", true).order("sort_order"),
+        supabase.from("category_size_systems").select("category_id, system_id, sort_order"),
+      ]);
+      setSizeSystems(sysRes.data ?? []);
+      setSizeOptions(optRes.data ?? []);
+      setColors(colRes.data ?? []);
+      const map: Record<string, string[]> = {};
+      for (const row of cssRes.data ?? []) {
+        (map[row.category_id] ??= []).push(row.system_id);
+      }
+      setCatSystems(map);
+
       if (isEditing) {
         const { data: prod, error: prodErr } = await supabase
           .from("products")
@@ -132,6 +158,10 @@ export default function AdminProductEditPage() {
         setCompareAtPrice(prod.compare_at_price ? String(prod.compare_at_price) : "");
         setVisible(!prod.is_archived);
         setIsFeatured(prod.is_featured);
+        if (prod.size_system_id) setSizeSystemId(prod.size_system_id);
+        else if (prod.category_id && catSystems[prod.category_id]?.length) {
+          setSizeSystemId(catSystems[prod.category_id][0]);
+        }
 
         // Load variants
         const { data: varsData } = await supabase
@@ -146,10 +176,15 @@ export default function AdminProductEditPage() {
               tempId: v.id,
               id: v.id,
               size: v.size ?? "",
+              sizeOptionId: v.size_option_id ?? null,
               color: v.color ?? "",
+              colorId: v.color_id ?? null,
               sku: v.sku,
               stock: v.stock,
               price: v.price != null ? String(v.price) : "",
+              salePrice: v.sale_price != null ? String(v.sale_price) : "",
+              comparePrice: v.compare_at_price != null ? String(v.compare_at_price) : "",
+              allowPreorder: v.allow_preorder ?? false,
             }))
           );
         } else {
@@ -158,10 +193,15 @@ export default function AdminProductEditPage() {
             {
               tempId: crypto.randomUUID(),
               size: "M",
+              sizeOptionId: null,
               color: "Noir",
+              colorId: null,
               sku: `${prod.slug.toUpperCase()}-M-NOIR`,
               stock: 10,
               price: "",
+              salePrice: "",
+              comparePrice: "",
+              allowPreorder: false,
             },
           ]);
         }
@@ -191,10 +231,15 @@ export default function AdminProductEditPage() {
           {
             tempId: crypto.randomUUID(),
             size: "M",
+            sizeOptionId: null,
             color: "Noir",
+            colorId: null,
             sku: "",
             stock: 10,
             price: "",
+            salePrice: "",
+            comparePrice: "",
+            allowPreorder: false,
           },
         ]);
       }
@@ -234,6 +279,9 @@ export default function AdminProductEditPage() {
   // When category changes, check if category is "bijoux" or "lunettes"
   const handleCategoryChange = (newCatId: string) => {
     setCategoryId(newCatId);
+    const linked = catSystems[newCatId] ?? [];
+    if (linked.length > 0) setSizeSystemId(linked[0]);
+    else setSizeSystemId("");
     const cat = categories.find((c) => c.id === newCatId);
     if (cat && isNoSizeCategory(cat.slug)) {
       // Suggest/apply "Unique" size to variants
@@ -259,10 +307,15 @@ export default function AdminProductEditPage() {
       {
         tempId: crypto.randomUUID(),
         size: defaultSize,
+        sizeOptionId: null,
         color: "Noir",
+        colorId: null,
         sku: newSku,
         stock: 5,
         price: "",
+        salePrice: "",
+        comparePrice: "",
+        allowPreorder: false,
       },
     ]);
   };
@@ -270,7 +323,7 @@ export default function AdminProductEditPage() {
   const updateVariant = (
     tempId: string,
     field: keyof VariantDraft,
-    val: string | number
+    val: string | number | boolean | null
   ) => {
     setVariants((prev) =>
       prev.map((v) => (v.tempId === tempId ? { ...v, [field]: val } : v))
@@ -288,6 +341,17 @@ export default function AdminProductEditPage() {
     }
     setVariants((prev) => prev.filter((v) => v.tempId !== tempId));
   };
+
+  // Systemes de tailles proposes pour la categorie selectionnee
+  const categorySystems = (catSystems[categoryId] ?? [])
+    .map((sid) => sizeSystems.find((s) => s.id === sid))
+    .filter((s): s is SizeSystem => Boolean(s));
+  // Options de tailles du systeme courant
+  const currentSizeOptions = sizeOptions.filter((o) => o.system_id === sizeSystemId);
+  // Correspondance texte taille -> option (pour preselection des anciennes variantes)
+  const sizeOptionByValue = new Map(currentSizeOptions.map((o) => [o.value, o]));
+  // Correspondance nom couleur -> catalogue (pour preselection)
+  const colorByName = new Map(colors.map((c) => [c.name.toLowerCase(), c]));
 
   // Image upload
   const handleImageFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -464,6 +528,7 @@ export default function AdminProductEditPage() {
         slug: validData.slug,
         description: validData.description || null,
         category_id: validData.category_id || null,
+        size_system_id: sizeSystemId || null,
         price: validData.price,
         compare_at_price: validData.compare_at_price,
         is_archived: !validData.visible, // Archiving
@@ -495,10 +560,15 @@ export default function AdminProductEditPage() {
         const variantPayload = {
           product_id: productId,
           size: v.size.trim() || null,
+          size_option_id: v.sizeOptionId,
           color: v.color.trim() || null,
+          color_id: v.colorId,
           sku: v.sku.trim().toUpperCase(),
           stock: Number(v.stock) || 0,
           price: v.price.trim() ? parseInt(v.price, 10) : null,
+          sale_price: v.salePrice.trim() ? parseInt(v.salePrice, 10) : null,
+          compare_at_price: v.comparePrice.trim() ? parseInt(v.comparePrice, 10) : null,
+          allow_preorder: v.allowPreorder,
           currency: "XOF",
         };
 
@@ -776,55 +846,111 @@ export default function AdminProductEditPage() {
               <div>
                 <h2 className={styles.cardTitle}>Variantes & Stock</h2>
                 <span className={styles.cardSubtitle}>
-                  Taille (« Unique » pour bijoux et lunettes), Couleur, SKU et Stock
+                  {currentSizeOptions.length > 0
+                    ? `Tailles : ${sizeSystems.find((s) => s.id === sizeSystemId)?.name ?? ""}`
+                    : "Taille (« Unique » pour bijoux et lunettes), Couleur, SKU et Stock"}
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={addVariant}
-                className={styles.smallActionBtn}
-                style={{ padding: "8px 12px" }}
-              >
-                <Plus size={14} style={{ marginRight: 4 }} />
-                Ajouter une variante
-              </button>
+              <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center" }}>
+                {categorySystems.length > 1 && (
+                  <select
+                    className={styles.select}
+                    style={{ width: "auto", padding: "6px 10px", fontSize: "0.8125rem" }}
+                    value={sizeSystemId}
+                    onChange={(e) => setSizeSystemId(e.target.value)}
+                    title="Système de tailles du produit"
+                  >
+                    {categorySystems.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                )}
+                <button
+                  type="button"
+                  onClick={addVariant}
+                  className={styles.smallActionBtn}
+                  style={{ padding: "8px 12px" }}
+                >
+                  <Plus size={14} style={{ marginRight: 4 }} />
+                  Ajouter une variante
+                </button>
+              </div>
             </div>
 
             <table className={styles.variantsTable}>
               <thead>
                 <tr>
-                  <th style={{ width: "90px" }}>Taille</th>
-                  <th style={{ width: "110px" }}>Couleur</th>
+                  <th style={{ width: "110px" }}>Taille</th>
+                  <th style={{ width: "130px" }}>Couleur</th>
                   <th>SKU (Unique) *</th>
-                  <th style={{ width: "90px" }}>Stock</th>
-                  <th style={{ width: "120px" }}>Prix optionnel</th>
+                  <th style={{ width: "80px" }}>Stock</th>
+                  <th style={{ width: "110px" }}>Prix</th>
+                  <th style={{ width: "110px" }}>Promo</th>
+                  <th style={{ width: "110px" }}>Ancien prix</th>
+                  <th style={{ width: "70px" }}>Préco</th>
                   <th style={{ width: "40px" }}></th>
                 </tr>
               </thead>
               <tbody>
-                {variants.map((v) => (
+                {variants.map((v) => {
+                  const matchedSizeOpt =
+                    currentSizeOptions.find((o) => o.id === v.sizeOptionId) ??
+                    sizeOptionByValue.get(v.size);
+                  const matchedColor =
+                    colors.find((c) => c.id === v.colorId) ??
+                    colorByName.get(v.color.trim().toLowerCase());
+                  return (
                   <tr key={v.tempId}>
                     <td>
-                      <input
-                        type="text"
-                        className={styles.tableInput}
-                        value={v.size}
-                        placeholder="M"
-                        onChange={(e) =>
-                          updateVariant(v.tempId, "size", e.target.value)
-                        }
-                      />
+                      {currentSizeOptions.length > 0 ? (
+                        <select
+                          className={styles.tableInput}
+                          value={matchedSizeOpt?.id ?? ""}
+                          onChange={(e) => {
+                            const opt = currentSizeOptions.find((o) => o.id === e.target.value);
+                            updateVariant(v.tempId, "sizeOptionId", opt?.id ?? null);
+                            if (opt) updateVariant(v.tempId, "size", opt.value);
+                          }}
+                        >
+                          <option value="">—</option>
+                          {currentSizeOptions.map((o) => (
+                            <option key={o.id} value={o.id}>{o.value}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          className={styles.tableInput}
+                          value={v.size}
+                          placeholder="M"
+                          onChange={(e) =>
+                            updateVariant(v.tempId, "size", e.target.value)
+                          }
+                        />
+                      )}
                     </td>
                     <td>
-                      <input
-                        type="text"
+                      <select
                         className={styles.tableInput}
-                        value={v.color}
-                        placeholder="Noir"
-                        onChange={(e) =>
-                          updateVariant(v.tempId, "color", e.target.value)
-                        }
-                      />
+                        value={matchedColor?.id ?? "__custom"}
+                        onChange={(e) => {
+                          if (e.target.value === "__custom") return;
+                          const col = colors.find((c) => c.id === e.target.value);
+                          if (col) {
+                            updateVariant(v.tempId, "colorId", col.id);
+                            updateVariant(v.tempId, "color", col.name);
+                          }
+                        }}
+                      >
+                        {!matchedColor && v.color && (
+                          <option value="__custom">{v.color} (libre)</option>
+                        )}
+                        {colors.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.hex_code ? `● ` : ""}{c.name}
+                          </option>
+                        ))}
+                      </select>
                     </td>
                     <td>
                       <input
@@ -867,6 +993,40 @@ export default function AdminProductEditPage() {
                       />
                     </td>
                     <td>
+                      <input
+                        type="number"
+                        min="0"
+                        className={styles.tableInput}
+                        placeholder="Prix promo"
+                        value={v.salePrice}
+                        onChange={(e) =>
+                          updateVariant(v.tempId, "salePrice", e.target.value)
+                        }
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min="0"
+                        className={styles.tableInput}
+                        placeholder="Prix barré"
+                        value={v.comparePrice}
+                        onChange={(e) =>
+                          updateVariant(v.tempId, "comparePrice", e.target.value)
+                        }
+                      />
+                    </td>
+                    <td style={{ textAlign: "center" }}>
+                      <input
+                        type="checkbox"
+                        checked={v.allowPreorder}
+                        onChange={(e) =>
+                          updateVariant(v.tempId, "allowPreorder", e.target.checked)
+                        }
+                        title="Autoriser la précommande même stock épuisé"
+                      />
+                    </td>
+                    <td>
                       <button
                         type="button"
                         onClick={() => removeVariant(v.tempId)}
@@ -877,7 +1037,8 @@ export default function AdminProductEditPage() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </section>

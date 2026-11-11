@@ -5,7 +5,7 @@ import { Search, SlidersHorizontal, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { useCategories, useCollections } from "@/lib/hooks";
-import { ProductCard, Skeleton, EmptyState, ErrorState, Button, Breadcrumb, Stripe } from "@/components/ui";
+import { ProductCard, Skeleton, EmptyState, ErrorState, Button, Breadcrumb } from "@/components/ui";
 import { SEO } from "@/components/SEO";
 import { sortSizes, isNoSizeCategory } from "@/lib/sizes";
 import type { ProductWithImage, ProductVariant } from "@/lib/db-types";
@@ -554,9 +554,6 @@ export default function ShopPage() {
           </p>
         )}
       </header>
-
-      {/* Bande signature sous le titre boutique */}
-      <Stripe className={styles.shopStripe} />
 
       <div className={styles.contentLayout}>
         {/* 2. Filtres en barre latérale sur ordinateur */}

@@ -19,11 +19,13 @@ import {
 } from "@/components/ui";
 import { SEO } from "@/components/SEO";
 import { sortSizes } from "@/lib/sizes";
+import { getSizeGuideSections } from "@/lib/size-guide";
 import type {
   Product,
   ProductImage,
   ProductVariant,
   ProductWithImage,
+  Color,
 } from "@/lib/db-types";
 import type { ProductCardData } from "@/components/ui";
 import styles from "./ProductDetailPage.module.css";
@@ -44,6 +46,8 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [images, setImages] = useState<ProductImage[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [colorCatalog, setColorCatalog] = useState<Color[]>([]);
+  const [sizeSystemKey, setSizeSystemKey] = useState<string>("");
   const [categoryName, setCategoryName] = useState<string>("");
   const [categorySlug, setCategorySlug] = useState<string>("");
   const [complementaryProducts, setComplementaryProducts] = useState<
@@ -98,7 +102,7 @@ export default function ProductDetailPage() {
       const { data: prod, error: prodErr } = await supabase
         .from("products")
         .select(
-          "id, name, slug, description, price, compare_at_price, currency, category_id, is_archived, is_featured, sort_order, created_at"
+          "id, name, slug, description, price, compare_at_price, currency, category_id, size_system_id, is_archived, is_featured, sort_order, created_at"
         )
         .eq("slug", slug)
         .eq("is_archived", false)
@@ -112,7 +116,7 @@ export default function ProductDetailPage() {
       setProduct(prod);
 
       // 2. Fetch images, variants, category & favorite in parallel
-      const [imgRes, varRes, catRes] = await Promise.all([
+      const [imgRes, varRes, catRes, colRes, sysRes] = await Promise.all([
         supabase
           .from("product_images")
           .select("id, product_id, url, alt_text, sort_order, is_primary")
@@ -121,7 +125,7 @@ export default function ProductDetailPage() {
           .order("sort_order", { ascending: true }),
         supabase
           .from("product_variants")
-          .select("id, product_id, size, color, sku, stock, price, currency")
+          .select("id, product_id, size, size_option_id, color, color_id, sku, stock, price, sale_price, compare_at_price, allow_preorder, currency")
           .eq("product_id", prod.id),
         prod.category_id
           ? supabase
@@ -130,9 +134,23 @@ export default function ProductDetailPage() {
               .eq("id", prod.category_id)
               .maybeSingle()
           : Promise.resolve({ data: null }),
+        supabase
+          .from("colors")
+          .select("id, name, hex_code, image_url, sort_order, is_active")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true }),
+        prod.size_system_id
+          ? supabase
+              .from("size_systems")
+              .select("key")
+              .eq("id", prod.size_system_id)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
       ]);
 
       setImages(imgRes.data ?? []);
+      setColorCatalog(colRes.data ?? []);
+      if (sysRes.data?.key) setSizeSystemKey(sysRes.data.key);
       const vars = varRes.data ?? [];
       setVariants(vars);
       if (catRes.data) {
@@ -313,11 +331,28 @@ export default function ProductDetailPage() {
   const isOnlyUniqueSize =
     distinctSizes.length === 1 && distinctSizes[0].toLowerCase() === "unique";
 
+  // Couleur catalogue associee a une couleur texte (par color_id puis par nom)
+  const colorInfoFor = useCallback(
+    (colorName: string, colorId?: string | null): Color | undefined => {
+      if (colorId) {
+        const byId = colorCatalog.find((c) => c.id === colorId);
+        if (byId) return byId;
+      }
+      const lower = colorName.trim().toLowerCase();
+      return colorCatalog.find((c) => c.name.toLowerCase() === lower);
+    },
+    [colorCatalog]
+  );
+
   const distinctColors = useMemo(() => {
     return Array.from(
       new Set(variants.map((v) => v.color).filter((c): c is string => Boolean(c)))
     );
   }, [variants]);
+
+  // Prix effectif de la variante : promo > prix variante > prix produit
+  const variantUnitPrice = (v: ProductVariant): number =>
+    v.sale_price ?? v.price ?? 0;
 
   // Current selected variant
   const selectedVariant = useMemo(() => {
@@ -332,14 +367,23 @@ export default function ProductDetailPage() {
     });
   }, [variants, isOnlyUniqueSize, selectedSize, selectedColor]);
 
-  const maxStock = selectedVariant ? Math.max(0, selectedVariant.stock) : 99;
+  const canPreorder = (v: ProductVariant): boolean =>
+    v.stock <= 0 && Boolean(v.allow_preorder);
+
+  const maxStock = selectedVariant
+    ? selectedVariant.stock > 0
+      ? selectedVariant.stock
+      : canPreorder(selectedVariant)
+      ? 99
+      : 0
+    : 99;
 
   useEffect(() => {
     if (selectedVariant) {
-      if (selectedVariant.stock <= 0) {
+      if (selectedVariant.stock <= 0 && !canPreorder(selectedVariant)) {
         setQuantity(0);
       } else {
-        setQuantity((q) => Math.min(Math.max(1, q), selectedVariant.stock));
+        setQuantity((q) => Math.min(Math.max(1, q), selectedVariant.stock > 0 ? selectedVariant.stock : 99));
       }
     } else {
       setQuantity(1);
@@ -400,7 +444,7 @@ export default function ProductDetailPage() {
       };
     }
 
-    if (matchingVariant && matchingVariant.stock <= 0) {
+    if (matchingVariant && matchingVariant.stock <= 0 && !matchingVariant.allow_preorder) {
       return { valid: false, message: t("product.errVariantSoldOut") };
     }
 
@@ -438,7 +482,7 @@ export default function ProductDetailPage() {
         size: result.variant.size ?? null,
         color: result.variant.color ?? null,
         sku: result.variant.sku,
-        unit_price: result.variant.price ?? product.price,
+        unit_price: variantUnitPrice(result.variant) || product.price,
         currency: result.variant.currency || product.currency || "XOF",
         stock: result.variant.stock,
         quantity: Math.max(1, quantity),
@@ -476,7 +520,7 @@ export default function ProductDetailPage() {
         size: result.variant.size ?? null,
         color: result.variant.color ?? null,
         sku: result.variant.sku,
-        unit_price: result.variant.price ?? product.price,
+        unit_price: variantUnitPrice(result.variant) || product.price,
         currency: result.variant.currency || product.currency || "XOF",
         stock: result.variant.stock,
         quantity: Math.max(1, quantity),
@@ -530,13 +574,29 @@ export default function ProductDetailPage() {
     );
   }
 
-  const hasDiscount =
-    product.compare_at_price != null && product.compare_at_price > product.price;
-  const currentPrice = selectedVariant?.price ?? product.price;
+  // Prix effectif : promo variante > prix variante > prix produit
+  const currentPrice =
+    (selectedVariant ? variantUnitPrice(selectedVariant) : 0) || product.price;
+  // Ancien prix : d'abord celui de la variante, sinon celui du produit
+  const variantCompareAt = selectedVariant?.compare_at_price ?? null;
+  const effectiveCompareAt =
+    variantCompareAt ??
+    (product.compare_at_price != null && product.compare_at_price > currentPrice
+      ? product.compare_at_price
+      : null);
+  const hasDiscount = effectiveCompareAt != null && effectiveCompareAt > currentPrice;
   const activeImage = images[activeImageIndex] || null;
 
-  // Guide des tailles seulement s'il est renseigné dans le produit (ne rien inventer)
+  // Couleur sélectionnée : échantillon hexa et photo dédiée éventuelle
+  const selectedColorInfo = selectedVariant?.color
+    ? colorInfoFor(selectedVariant.color, selectedVariant.color_id)
+    : undefined;
+  const colorImageUrl = selectedColorInfo?.image_url ?? null;
+
+  // Guide des tailles : texte libre du produit + tableaux standards selon le système
   const productSizeGuide = (product as any).size_guide?.trim() ?? "";
+  const guideSections = getSizeGuideSections(sizeSystemKey);
+  const hasSizeGuide = Boolean(productSizeGuide) || guideSections.length > 0;
 
   const inStock = variants.length > 0
     ? variants.some((v) => v.stock > 0)
@@ -605,7 +665,7 @@ export default function ProductDetailPage() {
                     onClick={() => setIsZoomed((z) => !z)}
                   >
                     <img
-                      src={img.url}
+                      src={idx === activeImageIndex && colorImageUrl ? colorImageUrl : img.url}
                       alt={img.alt_text ?? product.name}
                       className={[
                         styles.mainImage,
@@ -698,7 +758,7 @@ export default function ProductDetailPage() {
             >
               {activeImage ? (
                 <img
-                  src={activeImage.url}
+                  src={colorImageUrl ?? activeImage.url}
                   alt={activeImage.alt_text ?? product.name}
                   className={[styles.mainImage, isZoomed ? styles.zoomed : ""]
                     .filter(Boolean)
@@ -760,7 +820,7 @@ export default function ProductDetailPage() {
             </span>
             {hasDiscount && (
               <span className={styles.originalPrice}>
-                {formatPrice(product.compare_at_price!)}
+                {formatPrice(effectiveCompareAt!)}
               </span>
             )}
             {hasDiscount && (
@@ -780,6 +840,10 @@ export default function ProductDetailPage() {
               <div className={styles.optionsGrid}>
                 {distinctColors.map((color) => {
                   const isActive = selectedColor === color;
+                  const cVariant = variants.find((v) => v.color === color);
+                  const cInfo = cVariant
+                    ? colorInfoFor(color, cVariant.color_id)
+                    : undefined;
                   return (
                     <button
                       key={color}
@@ -792,6 +856,21 @@ export default function ProductDetailPage() {
                         .join(" ")}
                       onClick={() => setSelectedColor(color)}
                     >
+                      {cInfo?.hex_code && (
+                        <span
+                          aria-hidden="true"
+                          style={{
+                            display: "inline-block",
+                            width: 10,
+                            height: 10,
+                            borderRadius: "50%",
+                            background: cInfo.hex_code,
+                            marginRight: 6,
+                            verticalAlign: "middle",
+                            border: "1px solid var(--color-neutral-300, #ccc)",
+                          }}
+                        />
+                      )}
                       {color}
                     </button>
                   );
@@ -805,8 +884,8 @@ export default function ProductDetailPage() {
             <div className={styles.selectorGroup} ref={sizeSectionRef}>
               <div className={styles.selectorHeader}>
                 <span className={styles.selectorTitle}>{t("product.size")}</span>
-                {/* Guide des tailles : seulement s'il est renseigné */}
-                {Boolean(productSizeGuide) && (
+                {/* Guide des tailles : tableaux standards + texte éventuel du produit */}
+                {hasSizeGuide && (
                   <button
                     type="button"
                     className={styles.sizeGuideBtn}
@@ -824,7 +903,9 @@ export default function ProductDetailPage() {
                       v.size === size &&
                       (selectedColor ? v.color === selectedColor : true)
                   );
-                  const isSoldOut = matchingVar ? matchingVar.stock <= 0 : false;
+                  const isSoldOut = matchingVar
+                    ? matchingVar.stock <= 0 && !matchingVar.allow_preorder
+                    : false;
 
                   return (
                     <button
@@ -849,10 +930,14 @@ export default function ProductDetailPage() {
             </div>
           )}
 
-          {/* Indication informative de stock */}
+          {/* Indication informative de stock / précommande */}
           {selectedVariant && (
             <div className={styles.stockNote}>
-              {selectedVariant.stock > 5 ? (
+              {canPreorder(selectedVariant) ? (
+                <span style={{ color: "var(--color-accent)" }}>
+                  {t("product.preorder")}
+                </span>
+              ) : selectedVariant.stock > 5 ? (
                 <span>{t("product.inStock")}</span>
               ) : selectedVariant.stock > 0 ? (
                 <span style={{ color: "var(--color-accent)" }}>
@@ -1005,8 +1090,8 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* Guide des tailles Modal — affiché seulement si renseigné */}
-      {showSizeGuide && productSizeGuide && (
+      {/* Guide des tailles Modal */}
+      {showSizeGuide && hasSizeGuide && (
         <div
           className={styles.sizeGuideModal}
           onClick={() => setShowSizeGuide(false)}
@@ -1033,9 +1118,69 @@ export default function ProductDetailPage() {
                 <X size={20} />
               </button>
             </div>
-            <div style={{ whiteSpace: "pre-wrap", fontSize: "var(--text-sm)" }}>
-              {productSizeGuide}
-            </div>
+            {guideSections.map((section) => (
+              <div key={section.id} style={{ marginBottom: "var(--space-4)" }}>
+                <h4
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    textTransform: "uppercase",
+                    fontSize: "var(--text-sm)",
+                    marginBottom: "var(--space-2)",
+                  }}
+                >
+                  {section.title}
+                </h4>
+                <table
+                  style={{
+                    width: "100%",
+                    borderCollapse: "collapse",
+                    fontSize: "var(--text-sm)",
+                  }}
+                >
+                  <thead>
+                    <tr>
+                      {section.headers.map((h) => (
+                        <th
+                          key={h}
+                          style={{
+                            textAlign: "left",
+                            padding: "6px 8px",
+                            borderBottom: "1px solid var(--color-neutral-300, #ccc)",
+                          }}
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {section.rows.map((row) => (
+                      <tr key={row.intl}>
+                        <td style={{ padding: "4px 8px" }}>{row.intl}</td>
+                        <td style={{ padding: "4px 8px" }}>{row.eu}</td>
+                        <td style={{ padding: "4px 8px" }}>{row.us}</td>
+                        <td style={{ padding: "4px 8px" }}>{row.uk}</td>
+                        <td style={{ padding: "4px 8px" }}>{row.cm}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+            {productSizeGuide && (
+              <div style={{ whiteSpace: "pre-wrap", fontSize: "var(--text-sm)" }}>
+                {productSizeGuide}
+              </div>
+            )}
+            <p
+              style={{
+                fontSize: "var(--text-xs, 0.75rem)",
+                color: "var(--color-neutral-400, #888)",
+                marginTop: "var(--space-3)",
+              }}
+            >
+              Les mesures sont indicatives et peuvent varier selon les marques.
+            </p>
           </div>
         </div>
       )}
@@ -1081,7 +1226,7 @@ export default function ProductDetailPage() {
           </span>
           {hasDiscount && (
             <span className={styles.mobileBarOriginalPrice}>
-              {formatPrice(product.compare_at_price!)}
+              {formatPrice(effectiveCompareAt!)}
             </span>
           )}
         </div>

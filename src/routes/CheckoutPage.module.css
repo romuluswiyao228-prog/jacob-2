@@ -500,3 +500,42 @@
   font-weight: 700;
   margin-bottom: 2px;
 }
+
+/* --- Position de livraison --- */
+.positionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: var(--border-width) solid var(--color-border-subtle);
+}
+
+.positionHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text);
+}
+
+.positionTitle {
+  font-weight: var(--weight-bold);
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.geoSaved {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.geoLink {
+  color: var(--color-text);
+  font-weight: var(--weight-bold);
+  text-decoration: underline;
+}

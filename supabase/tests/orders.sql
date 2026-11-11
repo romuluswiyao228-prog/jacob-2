@@ -86,6 +86,26 @@ INSERT INTO public.product_variants (id, product_id, size, color, sku, stock, pr
 VALUES ('e3333333-3333-3333-3333-333333333333', 'd2222222-2222-2222-2222-222222222222', 'L', 'Gris', 'TEST-VAR-ARCH', 10, 18000, 'XOF')
 ON CONFLICT (id) DO UPDATE SET stock = 10;
 
+-- Variante 4 : stock dedie aux tests de position/repere (commande_simple)
+INSERT INTO public.product_variants (id, product_id, size, color, sku, stock, price, currency)
+VALUES ('e4444444-4444-4444-4444-444444444444', 'd1111111-1111-1111-1111-111111111111', 'XL', 'Bleu', 'TEST-VAR-GEO', 10, 12000, 'XOF')
+ON CONFLICT (id) DO UPDATE SET stock = 10;
+
+-- Variante 5 : prix promo sale_price (9000 XOF prioritaire sur price 12000)
+INSERT INTO public.product_variants (id, product_id, size, color, sku, stock, price, sale_price, currency)
+VALUES ('e5555555-5555-5555-5555-555555555555', 'd1111111-1111-1111-1111-111111111111', 'S', 'Rouge', 'TEST-VAR-SALE', 5, 12000, 9000, 'XOF')
+ON CONFLICT (id) DO UPDATE SET stock = 5, sale_price = 9000;
+
+-- Variante 6 : precommande autorisee avec stock 0
+INSERT INTO public.product_variants (id, product_id, size, color, sku, stock, price, allow_preorder, currency)
+VALUES ('e6666666-6666-6666-6666-666666666666', 'd1111111-1111-1111-1111-111111111111', 'XS', 'Vert', 'TEST-VAR-PRE', 0, 12000, true, 'XOF')
+ON CONFLICT (id) DO UPDATE SET stock = 0, allow_preorder = true;
+
+-- Variante 7 : stock 0 SANS precommande (doit rester refusee)
+INSERT INTO public.product_variants (id, product_id, size, color, sku, stock, price, allow_preorder, currency)
+VALUES ('e7777777-7777-7777-7777-777777777777', 'd1111111-1111-1111-1111-111111111111', 'XXS', 'Noir', 'TEST-VAR-RUP', 0, 12000, false, 'XOF')
+ON CONFLICT (id) DO UPDATE SET stock = 0, allow_preorder = false;
+
 -- ============================================================
 -- 3. Preparation de la zone et du tarif de livraison
 -- ============================================================
@@ -127,7 +147,7 @@ BEGIN
       )
     ),
     '{"first_name":"Jean","last_name":"Dupont","email":"order-test-a@example.com","phone":"+22890112233"}'::jsonb,
-    '{"line1":"123 Rue du Test","city":"Lomé","country":"Togo"}'::jsonb,
+    '{"line1":"123 Rue du Test","city":"Lomé","country":"Togo","landmark":"En face de la pharmacie"}'::jsonb,
     'cash_on_delivery'
   );
 
@@ -172,7 +192,7 @@ BEGIN
       )
     ),
     '{"first_name":"Jean","last_name":"Dupont","email":"order-test-a@example.com","phone":"+22890112233"}'::jsonb,
-    '{"line1":"123 Rue du Test","city":"Lomé","country":"Togo"}'::jsonb,
+    '{"line1":"123 Rue du Test","city":"Lomé","country":"Togo","landmark":"En face de la pharmacie"}'::jsonb,
     'cash_on_delivery'
   );
 
@@ -210,7 +230,7 @@ BEGIN
         jsonb_build_object('variant_id', 'e1111111-1111-1111-1111-111111111111', 'quantity', 0)
       ),
       '{"first_name":"Jean","last_name":"Dupont","email":"order-test-a@example.com","phone":"+22890112233"}'::jsonb,
-      '{"line1":"123 Rue du Test","city":"Lomé","country":"Togo"}'::jsonb,
+      '{"line1":"123 Rue du Test","city":"Lomé","country":"Togo","landmark":"En face de la pharmacie"}'::jsonb,
       'cash_on_delivery'
     );
   EXCEPTION WHEN OTHERS THEN
@@ -224,7 +244,7 @@ BEGIN
         jsonb_build_object('variant_id', 'e1111111-1111-1111-1111-111111111111', 'quantity', -5)
       ),
       '{"first_name":"Jean","last_name":"Dupont","email":"order-test-a@example.com","phone":"+22890112233"}'::jsonb,
-      '{"line1":"123 Rue du Test","city":"Lomé","country":"Togo"}'::jsonb,
+      '{"line1":"123 Rue du Test","city":"Lomé","country":"Togo","landmark":"En face de la pharmacie"}'::jsonb,
       'cash_on_delivery'
     );
   EXCEPTION WHEN OTHERS THEN
@@ -256,7 +276,7 @@ BEGIN
       jsonb_build_object('variant_id', 'e3333333-3333-3333-3333-333333333333', 'quantity', 1)
     ),
     '{"first_name":"Jean","last_name":"Dupont","email":"order-test-a@example.com","phone":"+22890112233"}'::jsonb,
-    '{"line1":"123 Rue du Test","city":"Lomé","country":"Togo"}'::jsonb,
+    '{"line1":"123 Rue du Test","city":"Lomé","country":"Togo","landmark":"En face de la pharmacie"}'::jsonb,
     'cash_on_delivery'
   );
 
@@ -290,7 +310,7 @@ BEGIN
       jsonb_build_object('variant_id', 'e1111111-1111-1111-1111-111111111111', 'quantity', 1)
     ),
     '{"first_name":"Jean","last_name":"Dupont","email":"order-test-a@example.com","phone":"+22890112233"}'::jsonb,
-    '{"line1":"999 Rue Perdue","city":"VilleInconnue","country":"PaysInexistant"}'::jsonb,
+    '{"line1":"999 Rue Perdue","city":"VilleInconnue","country":"PaysInexistant","landmark":"En face de la pharmacie"}'::jsonb,
     'cash_on_delivery'
   );
 
@@ -329,7 +349,7 @@ BEGIN
       jsonb_build_object('variant_id', 'e2222222-2222-2222-2222-222222222222', 'quantity', 1)
     ),
     '{"first_name":"Jean","last_name":"Dupont","email":"order-test-a@example.com","phone":"+22890112233"}'::jsonb,
-    '{"line1":"123 Rue du Test","city":"Lomé","country":"Togo"}'::jsonb,
+    '{"line1":"123 Rue du Test","city":"Lomé","country":"Togo","landmark":"En face de la pharmacie"}'::jsonb,
     'cash_on_delivery'
   );
 
@@ -340,7 +360,7 @@ BEGIN
         jsonb_build_object('variant_id', 'e2222222-2222-2222-2222-222222222222', 'quantity', 1)
       ),
       '{"first_name":"Client","last_name":"Second","email":"order-test-b@example.com","phone":"+22890223344"}'::jsonb,
-      '{"line1":"123 Rue du Test","city":"Lomé","country":"Togo"}'::jsonb,
+      '{"line1":"123 Rue du Test","city":"Lomé","country":"Togo","landmark":"En face de la pharmacie"}'::jsonb,
       'cash_on_delivery'
     );
   EXCEPTION WHEN OTHERS THEN
@@ -457,7 +477,7 @@ BEGIN
       jsonb_build_object('variant_id', 'e1111111-1111-1111-1111-111111111111', 'quantity', 1)
     ),
     '{"first_name":"Invite","last_name":"Anonyme","email":"guest@example.com","phone":"+22890556677"}'::jsonb,
-    '{"line1":"10 Boulevard Circulaire","city":"Lomé","country":"Togo"}'::jsonb,
+    '{"line1":"10 Boulevard Circulaire","city":"Lomé","country":"Togo","landmark":"En face de la pharmacie"}'::jsonb,
     'cash_on_delivery'
   );
 
@@ -535,6 +555,366 @@ BEGIN
     INSERT INTO test_order_results (test_name, resultat, details)
     VALUES ('TEST 10 - Anon ne lit aucune table de commandes', 'ÉCHEC', format('Fuite anonyme : orders=%s, items=%s, payments=%s, history=%s, shipments=%s', v_cnt_orders, v_cnt_items, v_cnt_payments, v_cnt_history, v_cnt_shipments));
     RAISE NOTICE 'TEST 10 (Anon ne lit aucune table de commandes): ÉCHEC';
+  END IF;
+END $$;
+
+-- ============================================================
+-- TESTS 11 a 18 : nouvelle place_order (commande_simple)
+-- full_name, email facultatif, line1 facultatif, position
+-- (lat/lng, maps_link, landmark) obligatoire.
+-- Variant e4444444 (stock 10) utilisee pour les succes.
+-- ============================================================
+
+-- TEST 11 : Commande complete - nom, telephone, ville et repere ;
+-- sans e-mail ; sans line1. Verification des champs enregistres.
+DO $$
+DECLARE
+  v_res jsonb;
+  v_order_data jsonb;
+  v_addr jsonb;
+BEGIN
+  v_res := public.place_order(
+    jsonb_build_array(
+      jsonb_build_object('variant_id', 'e4444444-4444-4444-4444-444444444444', 'quantity', 1)
+    ),
+    '{"full_name":"Awa Mensah","phone":"+22890123456"}'::jsonb,
+    '{"city":"Lomé","landmark":"En face de la pharmacie"}'::jsonb,
+    'cash_on_delivery'
+  );
+
+  v_order_data := public.get_guest_order(
+    v_res->>'order_number',
+    v_res->>'guest_token'
+  );
+  v_addr := v_order_data->'shipping_address';
+
+  IF v_addr->>'full_name' = 'Awa Mensah'
+     AND v_addr->>'city' = 'Lomé'
+     AND v_addr->>'landmark' = 'En face de la pharmacie'
+     AND v_addr->>'email' IS NULL
+     AND v_addr->>'line1' IS NULL
+     AND v_addr->>'country' = 'Togo' THEN
+    INSERT INTO test_order_results (test_name, resultat, details)
+    VALUES ('TEST 11 - Commande sans email ni line1, avec repere', 'RÉUSSI', 'full_name, ville, repere et pays par defaut (Togo) enregistres ; email et line1 absents acceptes');
+    RAISE NOTICE 'TEST 11 (Commande simplifiee): RÉUSSI';
+  ELSE
+    INSERT INTO test_order_results (test_name, resultat, details)
+    VALUES ('TEST 11 - Commande sans email ni line1, avec repere', 'ÉCHEC', format('Adresse enregistree : %s', v_addr));
+    RAISE NOTICE 'TEST 11 (Commande simplifiee): ÉCHEC';
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  INSERT INTO test_order_results (test_name, resultat, details)
+  VALUES ('TEST 11 - Commande sans email ni line1, avec repere', 'ÉCHEC', SQLERRM);
+  RAISE NOTICE 'TEST 11 (Commande simplifiee): ÉCHEC - %', SQLERRM;
+END $$;
+
+-- TEST 12 : Commande avec latitude et longitude.
+DO $$
+DECLARE
+  v_res jsonb;
+  v_order_data jsonb;
+BEGIN
+  v_res := public.place_order(
+    jsonb_build_array(
+      jsonb_build_object('variant_id', 'e4444444-4444-4444-4444-444444444444', 'quantity', 1)
+    ),
+    '{"full_name":"Kofi Agbeko","phone":"+22890223344"}'::jsonb,
+    '{"city":"Lomé","lat":6.1319,"lng":1.2228}'::jsonb,
+    'cash_on_delivery'
+  );
+
+  v_order_data := public.get_guest_order(
+    v_res->>'order_number',
+    v_res->>'guest_token'
+  );
+
+  IF (v_order_data->'shipping_address'->>'lat')::numeric = 6.1319
+     AND (v_order_data->'shipping_address'->>'lng')::numeric = 1.2228 THEN
+    INSERT INTO test_order_results (test_name, resultat, details)
+    VALUES ('TEST 12 - Commande avec lat et lng', 'RÉUSSI', 'Coordonnees GPS validees et enregistrees');
+    RAISE NOTICE 'TEST 12 (lat et lng): RÉUSSI';
+  ELSE
+    INSERT INTO test_order_results (test_name, resultat, details)
+    VALUES ('TEST 12 - Commande avec lat et lng', 'ÉCHEC', format('Adresse : %s', v_order_data->'shipping_address'));
+    RAISE NOTICE 'TEST 12 (lat et lng): ÉCHEC';
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  INSERT INTO test_order_results (test_name, resultat, details)
+  VALUES ('TEST 12 - Commande avec lat et lng', 'ÉCHEC', SQLERRM);
+  RAISE NOTICE 'TEST 12 (lat et lng): ÉCHEC - %', SQLERRM;
+END $$;
+
+-- TEST 13 : Commande avec un lien Google Maps valide.
+DO $$
+DECLARE
+  v_res jsonb;
+  v_order_data jsonb;
+BEGIN
+  v_res := public.place_order(
+    jsonb_build_array(
+      jsonb_build_object('variant_id', 'e4444444-4444-4444-4444-444444444444', 'quantity', 1)
+    ),
+    '{"first_name":"Ama","last_name":"Kossi","phone":"+22890334455"}'::jsonb,
+    '{"city":"Lomé","maps_link":"https://maps.app.goo.gl/ExempleValide123"}'::jsonb,
+    'cash_on_delivery'
+  );
+
+  v_order_data := public.get_guest_order(
+    v_res->>'order_number',
+    v_res->>'guest_token'
+  );
+
+  IF v_order_data->'shipping_address'->>'maps_link' = 'https://maps.app.goo.gl/ExempleValide123' THEN
+    INSERT INTO test_order_results (test_name, resultat, details)
+    VALUES ('TEST 13 - Commande avec lien Google Maps valide', 'RÉUSSI', 'Lien maps.app.goo.gl accepte et enregistre (compatibilite first_name/last_name conservee)');
+    RAISE NOTICE 'TEST 13 (lien Google Maps): RÉUSSI';
+  ELSE
+    INSERT INTO test_order_results (test_name, resultat, details)
+    VALUES ('TEST 13 - Commande avec lien Google Maps valide', 'ÉCHEC', format('Adresse : %s', v_order_data->'shipping_address'));
+    RAISE NOTICE 'TEST 13 (lien Google Maps): ÉCHEC';
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  INSERT INTO test_order_results (test_name, resultat, details)
+  VALUES ('TEST 13 - Commande avec lien Google Maps valide', 'ÉCHEC', SQLERRM);
+  RAISE NOTICE 'TEST 13 (lien Google Maps): ÉCHEC - %', SQLERRM;
+END $$;
+
+-- TEST 14 : Refus d un lien de position hors Google.
+DO $$
+DECLARE
+  v_failed boolean := false;
+BEGIN
+  BEGIN
+    PERFORM public.place_order(
+      jsonb_build_array(
+        jsonb_build_object('variant_id', 'e4444444-4444-4444-4444-444444444444', 'quantity', 1)
+      ),
+      '{"full_name":"Awa Mensah","phone":"+22890123456"}'::jsonb,
+      '{"city":"Lomé","maps_link":"https://exemple.com/nest-pas-google"}'::jsonb,
+      'cash_on_delivery'
+    );
+  EXCEPTION WHEN OTHERS THEN
+    v_failed := true;
+  END;
+
+  IF v_failed THEN
+    INSERT INTO test_order_results (test_name, resultat, details)
+    VALUES ('TEST 14 - Refus lien hors Google Maps', 'RÉUSSI', 'Un lien ne pointant pas vers Google Maps est rejete');
+    RAISE NOTICE 'TEST 14 (lien hors Google): RÉUSSI';
+  ELSE
+    INSERT INTO test_order_results (test_name, resultat, details)
+    VALUES ('TEST 14 - Refus lien hors Google Maps', 'ÉCHEC', 'La commande a ete acceptee avec un lien externe');
+    RAISE NOTICE 'TEST 14 (lien hors Google): ÉCHEC';
+  END IF;
+END $$;
+
+-- TEST 15 : Refus de lat sans lng.
+DO $$
+DECLARE
+  v_failed boolean := false;
+BEGIN
+  BEGIN
+    PERFORM public.place_order(
+      jsonb_build_array(
+        jsonb_build_object('variant_id', 'e4444444-4444-4444-4444-444444444444', 'quantity', 1)
+      ),
+      '{"full_name":"Awa Mensah","phone":"+22890123456"}'::jsonb,
+      '{"city":"Lomé","lat":6.1319}'::jsonb,
+      'cash_on_delivery'
+    );
+  EXCEPTION WHEN OTHERS THEN
+    v_failed := true;
+  END;
+
+  IF v_failed THEN
+    INSERT INTO test_order_results (test_name, resultat, details)
+    VALUES ('TEST 15 - Refus lat sans lng', 'RÉUSSI', 'Latitude seule rejetee : lat et lng requis ensemble');
+    RAISE NOTICE 'TEST 15 (lat sans lng): RÉUSSI';
+  ELSE
+    INSERT INTO test_order_results (test_name, resultat, details)
+    VALUES ('TEST 15 - Refus lat sans lng', 'ÉCHEC', 'La commande a ete acceptee avec lat seule');
+    RAISE NOTICE 'TEST 15 (lat sans lng): ÉCHEC';
+  END IF;
+END $$;
+
+-- TEST 16 : Refus d une latitude hors limites (91).
+DO $$
+DECLARE
+  v_failed boolean := false;
+BEGIN
+  BEGIN
+    PERFORM public.place_order(
+      jsonb_build_array(
+        jsonb_build_object('variant_id', 'e4444444-4444-4444-4444-444444444444', 'quantity', 1)
+      ),
+      '{"full_name":"Awa Mensah","phone":"+22890123456"}'::jsonb,
+      '{"city":"Lomé","lat":91,"lng":1.2228}'::jsonb,
+      'cash_on_delivery'
+    );
+  EXCEPTION WHEN OTHERS THEN
+    v_failed := true;
+  END;
+
+  IF v_failed THEN
+    INSERT INTO test_order_results (test_name, resultat, details)
+    VALUES ('TEST 16 - Refus latitude 91', 'RÉUSSI', 'Latitude hors plage [-90, 90] rejetee');
+    RAISE NOTICE 'TEST 16 (latitude 91): RÉUSSI';
+  ELSE
+    INSERT INTO test_order_results (test_name, resultat, details)
+    VALUES ('TEST 16 - Refus latitude 91', 'ÉCHEC', 'La commande a ete acceptee avec lat=91');
+    RAISE NOTICE 'TEST 16 (latitude 91): ÉCHEC';
+  END IF;
+END $$;
+
+-- TEST 17 : Refus sans aucun element de position.
+DO $$
+DECLARE
+  v_failed boolean := false;
+BEGIN
+  BEGIN
+    PERFORM public.place_order(
+      jsonb_build_array(
+        jsonb_build_object('variant_id', 'e4444444-4444-4444-4444-444444444444', 'quantity', 1)
+      ),
+      '{"full_name":"Awa Mensah","phone":"+22890123456"}'::jsonb,
+      '{"city":"Lomé","country":"Togo"}'::jsonb,
+      'cash_on_delivery'
+    );
+  EXCEPTION WHEN OTHERS THEN
+    v_failed := true;
+  END;
+
+  IF v_failed THEN
+    INSERT INTO test_order_results (test_name, resultat, details)
+    VALUES ('TEST 17 - Refus sans position ni repere', 'RÉUSSI', 'Commande sans lat/lng, maps_link ni landmark rejetee');
+    RAISE NOTICE 'TEST 17 (sans position): RÉUSSI';
+  ELSE
+    INSERT INTO test_order_results (test_name, resultat, details)
+    VALUES ('TEST 17 - Refus sans position ni repere', 'ÉCHEC', 'La commande a ete acceptee sans aucun element de position');
+    RAISE NOTICE 'TEST 17 (sans position): ÉCHEC';
+  END IF;
+END $$;
+
+-- TEST 18 : Refus d un nom vide.
+DO $$
+DECLARE
+  v_failed boolean := false;
+BEGIN
+  BEGIN
+    PERFORM public.place_order(
+      jsonb_build_array(
+        jsonb_build_object('variant_id', 'e4444444-4444-4444-4444-444444444444', 'quantity', 1)
+      ),
+      '{"full_name":"","first_name":"","last_name":"","phone":"+22890123456"}'::jsonb,
+      '{"city":"Lomé","landmark":"En face de la pharmacie"}'::jsonb,
+      'cash_on_delivery'
+    );
+  EXCEPTION WHEN OTHERS THEN
+    v_failed := true;
+  END;
+
+  IF v_failed THEN
+    INSERT INTO test_order_results (test_name, resultat, details)
+    VALUES ('TEST 18 - Refus nom vide', 'RÉUSSI', 'Nom complet vide et prenom/nom absents rejetes');
+    RAISE NOTICE 'TEST 18 (nom vide): RÉUSSI';
+  ELSE
+    INSERT INTO test_order_results (test_name, resultat, details)
+    VALUES ('TEST 18 - Refus nom vide', 'ÉCHEC', 'La commande a ete acceptee sans nom');
+    RAISE NOTICE 'TEST 18 (nom vide): ÉCHEC';
+  END IF;
+END $$;
+
+-- TEST 19 : Prix promo sale_price prioritaire sur price et prix produit.
+-- Variante 5 : price = 12000, sale_price = 9000, produit = 12000.
+-- Le prix unitaire facture doit etre 9000 XOF (total = 9000 + 1500 = 10500).
+DO $$
+DECLARE
+  v_res jsonb;
+  v_ok boolean := false;
+BEGIN
+  v_res := public.place_order(
+    jsonb_build_array(
+      jsonb_build_object('variant_id', 'e5555555-5555-5555-5555-555555555555', 'quantity', 1)
+    ),
+    '{"full_name":"Kossi Agbeko","phone":"+22890123456"}'::jsonb,
+    '{"city":"Lomé","landmark":"Pres du marche"}'::jsonb,
+    'cash_on_delivery'
+  );
+
+  -- subtotal = 9000 (sale_price) et total = 9000 + 1500 livraison = 10500.
+  -- (order_items n est pas lisible ici a cause de la RLS invite : on verifie
+  -- les montants retournes par place_order.)
+  IF (v_res->>'subtotal')::bigint = 9000 AND (v_res->>'total')::bigint = 10500 THEN
+    v_ok := true;
+  END IF;
+
+  IF v_ok THEN
+    INSERT INTO test_order_results (test_name, resultat, details)
+    VALUES ('TEST 19 - Prix promo sale_price', 'RÉUSSI', 'subtotal = 9000 XOF, total = 10500 XOF (sale_price prioritaire)');
+    RAISE NOTICE 'TEST 19 (sale_price): RÉUSSI';
+  ELSE
+    INSERT INTO test_order_results (test_name, resultat, details)
+    VALUES ('TEST 19 - Prix promo sale_price', 'ÉCHEC', format('subtotal=%s total=%s', v_res->>'subtotal', v_res->>'total'));
+    RAISE NOTICE 'TEST 19 (sale_price): ÉCHEC';
+  END IF;
+END $$;
+
+-- TEST 20 : Precommande acceptee quand allow_preorder = true malgre stock 0.
+DO $$
+DECLARE
+  v_res jsonb;
+  v_ok boolean := false;
+BEGIN
+  v_res := public.place_order(
+    jsonb_build_array(
+      jsonb_build_object('variant_id', 'e6666666-6666-6666-6666-666666666666', 'quantity', 2)
+    ),
+    '{"full_name":"Ama Koffi","phone":"+22890123456"}'::jsonb,
+    '{"city":"Lomé","landmark":"Rue des gradients"}'::jsonb,
+    'cash_on_delivery'
+  );
+
+  IF (v_res->>'order_id') IS NOT NULL THEN
+    v_ok := true;
+  END IF;
+
+  IF v_ok THEN
+    INSERT INTO test_order_results (test_name, resultat, details)
+    VALUES ('TEST 20 - Precommande autorisee', 'RÉUSSI', 'Commande acceptee sur variante allow_preorder avec stock 0');
+    RAISE NOTICE 'TEST 20 (precommande): RÉUSSI';
+  ELSE
+    INSERT INTO test_order_results (test_name, resultat, details)
+    VALUES ('TEST 20 - Precommande autorisee', 'ÉCHEC', 'La commande precommande a ete refusee');
+    RAISE NOTICE 'TEST 20 (precommande): ÉCHEC';
+  END IF;
+END $$;
+
+-- TEST 21 : Stock 0 SANS allow_preorder reste refuse.
+DO $$
+DECLARE
+  v_failed boolean := false;
+BEGIN
+  BEGIN
+    PERFORM public.place_order(
+      jsonb_build_array(
+        jsonb_build_object('variant_id', 'e7777777-7777-7777-7777-777777777777', 'quantity', 1)
+      ),
+      '{"full_name":"Yao Mensah","phone":"+22890123456"}'::jsonb,
+      '{"city":"Lomé","landmark":"Carrefour du port"}'::jsonb,
+      'cash_on_delivery'
+    );
+  EXCEPTION WHEN OTHERS THEN
+    v_failed := true;
+  END;
+
+  IF v_failed THEN
+    INSERT INTO test_order_results (test_name, resultat, details)
+    VALUES ('TEST 21 - Stock 0 sans precommande refuse', 'RÉUSSI', 'Variante stock 0 sans allow_preorder rejetee');
+    RAISE NOTICE 'TEST 21 (stock 0): RÉUSSI';
+  ELSE
+    INSERT INTO test_order_results (test_name, resultat, details)
+    VALUES ('TEST 21 - Stock 0 sans precommande refuse', 'ÉCHEC', 'La commande a ete acceptee sans stock ni precommande');
+    RAISE NOTICE 'TEST 21 (stock 0): ÉCHEC';
   END IF;
 END $$;
 

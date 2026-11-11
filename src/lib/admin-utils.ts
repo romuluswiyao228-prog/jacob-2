@@ -86,6 +86,19 @@ export async function resizeImageToMax1600(file: File): Promise<File | Blob> {
   return resizeImage(file, { maxDimension: 1600, quality: 0.85 });
 }
 
+/**
+ * Extrait le chemin d'un objet du bucket « store-assets » depuis son URL publique.
+ * Retourne null si l'URL ne pointe pas vers ce bucket (image externe, etc.).
+ */
+export function storeAssetPathFromUrl(imageUrl: string | null | undefined): string | null {
+  if (!imageUrl) return null;
+  const marker = "/storage/v1/object/public/store-assets/";
+  const idx = imageUrl.indexOf(marker);
+  if (idx === -1) return null;
+  const path = imageUrl.slice(idx + marker.length).split("?")[0];
+  return path || null;
+}
+
 /** Limite stricte : maximum 6 photos actives par côté pour la bannière d'accueil */
 export function canActivateHomeSlide(currentActiveCount: number): boolean {
   return currentActiveCount < 6;

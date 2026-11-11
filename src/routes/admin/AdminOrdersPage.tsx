@@ -27,6 +27,7 @@ interface OrderRow {
   created_at: string;
   customer_name: string | null;
   customer_email: string | null;
+  customer_phone: string | null;
   payment_status: PaymentStatus | null;
   payment_method: string | null;
 }
@@ -113,7 +114,7 @@ export default function AdminOrdersPage() {
           currency,
           created_at,
           user_id,
-          profiles:user_id ( full_name, email ),
+          shipping_address,
           payments ( status, method )
         `,
           { count: "exact" }
@@ -140,9 +141,29 @@ export default function AdminOrdersPage() {
       const { data, count, error: qErr } = await query;
       if (qErr) throw qErr;
 
+      // orders.user_id référence auth.users, pas profiles : pas d'embed possible.
+      // On charge les profils dans une seconde requête.
+      const userIds = Array.from(
+        new Set(
+          (data ?? [])
+            .map((o: any) => o.user_id)
+            .filter((id: unknown): id is string => typeof id === "string" && id.length > 0)
+        )
+      );
+      const profileMap = new Map<string, { full_name: string | null; email: string | null }>();
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, full_name, email")
+          .in("id", userIds);
+        for (const p of profiles ?? []) {
+          profileMap.set(p.id, { full_name: p.full_name, email: p.email });
+        }
+      }
+
       // Map data
       const rows: OrderRow[] = (data ?? []).map((o: any) => {
-        const profile = Array.isArray(o.profiles) ? o.profiles[0] : o.profiles;
+        const profile = o.user_id ? profileMap.get(o.user_id) : undefined;
         const payment = Array.isArray(o.payments) ? o.payments[0] : o.payments;
         return {
           id: o.id,
@@ -151,8 +172,10 @@ export default function AdminOrdersPage() {
           total: o.total,
           currency: o.currency,
           created_at: o.created_at,
-          customer_name: profile?.full_name ?? null,
+          customer_name:
+            profile?.full_name ?? o.shipping_address?.full_name ?? null,
           customer_email: profile?.email ?? null,
+          customer_phone: o.shipping_address?.phone ?? null,
           payment_status: payment?.status ?? null,
           payment_method: payment?.method ?? null,
         };
@@ -265,6 +288,7 @@ export default function AdminOrdersPage() {
             <tr>
               <th>Numéro</th>
               <th>Client</th>
+              <th>Téléphone</th>
               <th>Date</th>
               <th>Statut</th>
               <th>Paiement</th>
@@ -275,13 +299,13 @@ export default function AdminOrdersPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} className={styles.emptyState}>
+                <td colSpan={8} className={styles.emptyState}>
                   Chargement…
                 </td>
               </tr>
             ) : orders.length === 0 ? (
               <tr>
-                <td colSpan={7} className={styles.emptyState}>
+                <td colSpan={8} className={styles.emptyState}>
                   Aucune commande trouvée.
                 </td>
               </tr>
@@ -304,6 +328,15 @@ export default function AdminOrdersPage() {
                       <div className={styles.customerEmail}>
                         {order.customer_email}
                       </div>
+                    )}
+                  </td>
+                  <td>
+                    {order.customer_phone ? (
+                      <a href={`tel:${order.customer_phone}`} className={styles.customerEmail}>
+                        {order.customer_phone}
+                      </a>
+                    ) : (
+                      <span className={styles.customerEmail}>—</span>
                     )}
                   </td>
                   <td>
