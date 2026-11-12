@@ -159,8 +159,8 @@ export default function AdminProductEditPage() {
         setVisible(!prod.is_archived);
         setIsFeatured(prod.is_featured);
         if (prod.size_system_id) setSizeSystemId(prod.size_system_id);
-        else if (prod.category_id && catSystems[prod.category_id]?.length) {
-          setSizeSystemId(catSystems[prod.category_id][0]);
+        else if (prod.category_id && map[prod.category_id]?.length) {
+          setSizeSystemId(map[prod.category_id][0]);
         }
 
         // Load variants
@@ -254,6 +254,11 @@ export default function AdminProductEditPage() {
   useEffect(() => {
     loadInitialData();
   }, [loadInitialData]);
+
+  // Retour en haut de page une fois le chargement termine
+  useEffect(() => {
+    if (!loading) window.scrollTo(0, 0);
+  }, [loading]);
 
   // Handle name change and automatic slug
   const handleNameChange = (val: string) => {
@@ -502,6 +507,7 @@ export default function AdminProductEditPage() {
     }
 
     const skus = new Set<string>();
+    const combos = new Set<string>();
     for (const v of variants) {
       if (!v.sku.trim()) {
         setErrorMessage("Chaque variante doit posséder un SKU unique.");
@@ -516,16 +522,80 @@ export default function AdminProductEditPage() {
         setErrorMessage("Le stock ne peut pas être négatif.");
         return;
       }
+      // Unicité taille+couleur (index uq_product_variants_size_color)
+      const sizeKey = v.size.trim().toLowerCase();
+      const colorKey = v.color.trim().toLowerCase();
+      if (sizeKey && colorKey) {
+        const combo = `${sizeKey}|${colorKey}`;
+        if (combos.has(combo)) {
+          setErrorMessage(
+            `La combinaison taille « ${v.size.trim()} » / couleur « ${v.color.trim()} » est utilisée plusieurs fois.`
+          );
+          return;
+        }
+        combos.add(combo);
+      }
     }
 
     setSaving(true);
     try {
       const validData = validationResult.data;
 
+      // Les SKU sont globalement uniques sur tout le catalogue :
+      // verifier qu aucun SKU du formulaire n existe deja ailleurs.
+      const skuList = [...skus];
+      if (skuList.length > 0) {
+        const { data: skuClash } = await supabase
+          .from("product_variants")
+          .select("sku")
+          .in("sku", skuList)
+          .neq("product_id", productId);
+        if (skuClash && skuClash.length > 0) {
+          setErrorMessage(
+            `Le SKU « ${skuClash[0].sku} » existe déjà sur un autre produit. Les SKU doivent être uniques sur tout le catalogue.`
+          );
+          return;
+        }
+      }
+
+      // products.slug est globalement unique : si le slug est deja pris
+      // par un autre produit, on ajoute un suffixe numerique automatiquement.
+      let finalSlug = validData.slug;
+      const { data: slugClash } = await supabase
+        .from("products")
+        .select("id")
+        .eq("slug", finalSlug)
+        .neq("id", productId)
+        .maybeSingle();
+      if (slugClash) {
+        let suffix = 2;
+        let candidate = `${validData.slug}-${suffix}`;
+        // Cherche le premier suffixe libre (max 50 essais)
+        for (;;) {
+          const { data: c } = await supabase
+            .from("products")
+            .select("id")
+            .eq("slug", candidate)
+            .neq("id", productId)
+            .maybeSingle();
+          if (!c) break;
+          suffix += 1;
+          if (suffix > 50) {
+            setErrorMessage(
+              `Le slug « ${validData.slug} » est déjà utilisé et aucune variante libre n'a été trouvée. Modifiez le slug manuellement.`
+            );
+            return;
+          }
+          candidate = `${validData.slug}-${suffix}`;
+        }
+        finalSlug = candidate;
+        setSlug(finalSlug);
+      }
+
       // Product payload
       const productPayload = {
         name: validData.name,
-        slug: validData.slug,
+        slug: finalSlug,
         description: validData.description || null,
         category_id: validData.category_id || null,
         size_system_id: sizeSystemId || null,
@@ -621,7 +691,15 @@ export default function AdminProductEditPage() {
         navigate("/admin/produits");
       }, 1200);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erreur lors de l'enregistrement";
+      const e = err as { code?: string; message?: string };
+      let msg = e?.message || "Erreur lors de l'enregistrement";
+      if (e?.code === "23505") {
+        msg =
+          "Une valeur unique est déjà utilisée (SKU ou combinaison taille/couleur). Vérifiez les variantes du produit.";
+      } else if (e?.code === "23503") {
+        msg =
+          "Référence invalide (couleur, taille ou système de tailles introuvable). Rechargez la page et réessayez.";
+      }
       setErrorMessage(msg);
     } finally {
       setSaving(false);

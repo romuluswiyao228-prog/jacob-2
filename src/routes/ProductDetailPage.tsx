@@ -485,6 +485,7 @@ export default function ProductDetailPage() {
         unit_price: variantUnitPrice(result.variant) || product.price,
         currency: result.variant.currency || product.currency || "XOF",
         stock: result.variant.stock,
+        allow_preorder: result.variant.allow_preorder ?? false,
         quantity: Math.max(1, quantity),
       });
       openCart();
@@ -523,6 +524,7 @@ export default function ProductDetailPage() {
         unit_price: variantUnitPrice(result.variant) || product.price,
         currency: result.variant.currency || product.currency || "XOF",
         stock: result.variant.stock,
+        allow_preorder: result.variant.allow_preorder ?? false,
         quantity: Math.max(1, quantity),
       });
       navigate("/commande");
@@ -588,8 +590,9 @@ export default function ProductDetailPage() {
   const activeImage = images[activeImageIndex] || null;
 
   // Couleur sélectionnée : échantillon hexa et photo dédiée éventuelle
-  const selectedColorInfo = selectedVariant?.color
-    ? colorInfoFor(selectedVariant.color, selectedVariant.color_id)
+  // (uniquement quand le client a réellement choisi une couleur)
+  const selectedColorInfo = selectedColor
+    ? colorInfoFor(selectedColor, selectedVariant?.color_id)
     : undefined;
   const colorImageUrl = selectedColorInfo?.image_url ?? null;
 

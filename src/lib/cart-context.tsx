@@ -34,6 +34,7 @@ export interface CartLineItem {
   currency: string;
   quantity: number;
   stock: number;
+  allow_preorder?: boolean;
   alert?: "price_changed" | "out_of_stock" | "removed";
   new_price?: number;
 }
@@ -50,6 +51,7 @@ export interface AddItemParams {
   unit_price: number;
   currency: string;
   stock: number;
+  allow_preorder?: boolean;
   quantity?: number;
 }
 
@@ -141,6 +143,7 @@ async function loadRemoteCartItems(cartId: string): Promise<CartLineItem[]> {
         color,
         sku,
         stock,
+        allow_preorder,
         price,
         product_id,
         products (
@@ -168,6 +171,7 @@ async function loadRemoteCartItems(cartId: string): Promise<CartLineItem[]> {
       color: string | null;
       sku: string;
       stock: number;
+      allow_preorder: boolean | null;
       price: number | null;
       product_id: string;
       products: {
@@ -200,6 +204,7 @@ async function loadRemoteCartItems(cartId: string): Promise<CartLineItem[]> {
       currency: r.currency,
       quantity: r.quantity,
       stock: pv.stock,
+      allow_preorder: pv.allow_preorder ?? false,
     }] as CartLineItem[];
   });
 }
@@ -211,10 +216,10 @@ async function revalidateItems(items: CartLineItem[]): Promise<CartLineItem[]> {
 
   const { data } = await supabase
     .from("product_variants")
-    .select("id, stock, price, currency, products(is_archived)")
+    .select("id, stock, price, currency, allow_preorder, products(is_archived)")
     .in("id", variantIds);
 
-  type LiveRow = { id: string; stock: number; price: number | null; currency: string; products: { is_archived: boolean } | null };
+  type LiveRow = { id: string; stock: number; price: number | null; currency: string; allow_preorder: boolean | null; products: { is_archived: boolean } | null };
 
   const liveMap = new Map<string, LiveRow>();
   ((data ?? []) as unknown as LiveRow[]).forEach((v) => liveMap.set(v.id, v));
@@ -224,7 +229,7 @@ async function revalidateItems(items: CartLineItem[]): Promise<CartLineItem[]> {
     if (!live || live.products?.is_archived) {
       return { ...item, stock: 0, alert: "removed" as const };
     }
-    if (live.stock <= 0) {
+    if (live.stock <= 0 && !live.allow_preorder) {
       return { ...item, stock: 0, alert: "out_of_stock" as const };
     }
     const livePrice = live.price ?? item.unit_price;
@@ -288,9 +293,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
         .eq("variant_id", item.variant_id)
         .maybeSingle();
       if (existing) {
+        const cap = item.allow_preorder ? Number.MAX_SAFE_INTEGER : item.stock;
         await supabase
           .from("cart_items")
-          .update({ quantity: Math.min((existing as { quantity: number }).quantity + item.quantity, item.stock) })
+          .update({ quantity: Math.min((existing as { quantity: number }).quantity + item.quantity, cap) })
           .eq("id", (existing as { id: string }).id);
       } else {
         await supabase.from("cart_items").insert({
@@ -337,6 +343,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addItem = useCallback(async (params: AddItemParams) => {
     setError(null);
     const qtyToAdd = params.quantity && params.quantity > 0 ? params.quantity : 1;
+    // Les variantes en precommande ne sont pas bornees par le stock
+    const stockCap = params.allow_preorder ? Number.MAX_SAFE_INTEGER : params.stock;
     try {
       if (user && cartIdRef.current) {
         const cartId = cartIdRef.current;
@@ -348,13 +356,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
           .maybeSingle();
 
         if (existing) {
-          const newQty = Math.min((existing as { quantity: number }).quantity + qtyToAdd, params.stock);
+          const newQty = Math.min((existing as { quantity: number }).quantity + qtyToAdd, stockCap);
           await supabase.from("cart_items").update({ quantity: newQty }).eq("id", (existing as { id: string }).id);
         } else {
           await supabase.from("cart_items").insert({
             cart_id: cartId,
             variant_id: params.variant_id,
-            quantity: Math.min(qtyToAdd, params.stock),
+            quantity: Math.min(qtyToAdd, stockCap),
             unit_price: params.unit_price,
             currency: params.currency,
           });
@@ -366,13 +374,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
           let next: CartLineItem[];
           if (idx >= 0) {
             next = prev.map((item, i) =>
-              i === idx ? { ...item, quantity: Math.min(item.quantity + qtyToAdd, params.stock) } : item
+              i === idx ? { ...item, quantity: Math.min(item.quantity + qtyToAdd, stockCap) } : item
             );
           } else {
             const newLine: CartLineItem = {
               id: `local_${params.variant_id}_${Date.now()}`,
               ...params,
-              quantity: Math.min(qtyToAdd, params.stock),
+              quantity: Math.min(qtyToAdd, stockCap),
             };
             next = [...prev, newLine];
           }
